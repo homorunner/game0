@@ -76,15 +76,16 @@ skips updates for finished cases; transitions still occur in `AfterFrame`.
 `ENABLE_PEASHOOTER_EMPOWERED_PEA` in `GameConstants.h` is an independent,
 mutable inline bool, default true. Only plants whose actual `mSeedType` is
 `SEED_PEASHOOTER` qualify (including an Imitater after it becomes that type).
-Each plant counts emitted projectiles modulo three, not attack attempts or
-hits. Shots 3, 6, 9, ... snapshot the toggle at emission. Disabled shots still
+Outside roguelike runs, each plant counts emitted projectiles modulo three,
+not attack attempts or hits. In roguelike runs the Heavy Peas level changes
+that divisor to 3, 2 or 1. Empowerment is captured at emission. Disabled shots still
 advance cadence; changing the toggle does not alter projectiles in flight.
 New/reinitialized plants start at zero, including recycled allocation slots.
 
 An empowered pea draws at 1.5x scale with unchanged collision dimensions,
 speed, and targeting. Direct damage is 30 instead of 20. Surviving targets
 are displaced opposite their walking direction by 11.525217 pixels; both
-Gargantuar and red-eye Giga receive half, 5.762609 pixels. Integer collision
+Gargantuar and red-eye Giga are immune to knockback. Integer collision
 X is synchronized immediately. Dead/dying targets are not displaced.
 
 Torchwood retains the projectile's empowerment, scaling its fire animation
@@ -119,7 +120,7 @@ mean speed = (D / (N - 1)) * (0.30 * N / D * 47) = 0.30 * 47 * N/(N - 1)
 N = 47 for both loaded normal walk animations
 mean speed = 14.406522 pixels/second
 knockback = 80% * 14.406522 = 11.525217 pixels
-Gargantuar/Giga knockback = 5.762609 pixels
+Gargantuar/Giga knockback = 0 pixels
 ```
 
 The walking-evidence case samples 10,000 evenly spaced gait phases through
@@ -134,7 +135,7 @@ Enabled and disabled integration cases run five staggered normal Peashooters
 for 1,050 simulation ticks, observing six real emitted projectiles per plant
 and all resulting collisions. They check per-plant third/sixth-shot cadence,
 visual-scale selection, unchanged collision sizes, aggregate damage, normal
-knockback, both giants' half knockback, and real Torchwood conversion.
+knockback, both giants' knockback immunity, and real Torchwood conversion.
 
 A setup-only case round-trips cadence and in-flight empowerment through
 `LawnSaveGame`/`LawnLoadGame` in the sandbox, resumes the sixth shot, checks
@@ -335,7 +336,10 @@ schedule. Only collecting it rolls the offer. Offers contain up to three distinc
 eligible upgrades; unchosen upgrades remain eligible later. Opening Volley can
 be selected six times, granting 4/8/16/32/64/128 peas. Each pea uses a
 fixed 16-tick firing interval, extending the volley rather than firing simultaneous
-peas. Other upgrades remain single picks. With two or one eligible upgrades,
+peas. Heavy Peas can be selected three times: every third pea, every second
+pea, then every pea is empowered. Empowered peas retain their 50% extra damage
+and knockback against other enemies; both Gargantuar types are immune to
+knockback. Other upgrades remain single picks. With two or one eligible upgrades,
 all remaining choices are shown. Once every upgrade reaches its maximum, bag
 collection continues to advance stages without an empty selection screen.
 
@@ -352,19 +356,22 @@ with drawn parchment cards. Mouse release over the pressed card, number keys
 reward. Localization keys use `ROGUE_*`, with English fallbacks for the supplied
 bitmap fonts. Closing the application uses the existing save-on-shutdown path.
 
-New SAVE4 chunk 21 (version 1, data field 1) stores schema 2, active flag, unlock
-mask, phase, the ordered three offer IDs and Opening Volley level. Schema-1 run
-saves remain readable, with an unlocked Opening Volley treated as level one.
+New SAVE4 chunk 21 (version 1, data field 1) stores schema 3, active flag, unlock
+mask, phase, the ordered three offer IDs and Opening Volley/Heavy Peas levels.
+Schema-1 and schema-2 run saves remain readable, preserving their exact offers
+and treating previously unlocked upgrades with no stored level as level one.
 Loading preserves the exact offer,
 then recreates the dialog after Continue closes. Validation rejects invalid
 masks, phases, duplicate/maxed offers, invalid levels, malformed or duplicate run chunks, and
 phase/countdown mismatches. Pre-roguelike endless saves are deliberately rejected;
 no migration is provided. Non-endless saves keep their existing behavior.
 
-Nine cases in `RogueTestCases.cpp` cover all 256 unlock masks, real scoped
-effects, fourteen consecutive stage rewards (including pool exhaustion), all four
+Ten cases in `RogueTestCases.cpp` cover all 256 unlock masks, real scoped
+effects, sixteen consecutive stage rewards (including pool exhaustion), all four
 resumable phases, malformed saves, production input/update gates, actual modal
 focus and selection, death/restart, all six volley counts and firing intervals,
-mid-volley save continuation, and schema-1 compatibility. They are appended so tests 09 and 10
+mid-volley save continuation, all three Heavy Peas patterns, independent saved
+shot counters, all 28 mixed stack-level combinations, and schema-1/2 compatibility.
+They are appended so tests 09 and 10
 retain their numbering and 2x playback. The last case leaves a read-only version
 of the real three-card dialog visible during the five-second final hold.

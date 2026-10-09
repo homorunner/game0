@@ -37,6 +37,7 @@ private:
     std::array<int32_t, 3> mOffers;
     uint32_t mUnlocked;
     uint32_t mBurstLevel;
+    uint32_t mEmpoweredLevel;
     std::array<bool, 255> mHeldKeys{};
     int mOfferCount;
     int mFocusedSlot = 0;

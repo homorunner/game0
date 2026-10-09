@@ -869,12 +869,11 @@ void Projectile::DoImpact(Zombie* theZombie)
 		const int aDamage = GetProjectileDef().mDamage;
 		theZombie->TakeDamage(mEmpoweredPea ? aDamage * 3 / 2 : aDamage, aDamageFlags);
 	}
-	if (mEmpoweredPea && theZombie && !theZombie->IsDeadOrDying())
+	if (mEmpoweredPea && theZombie && !theZombie->IsDeadOrDying() &&
+		theZombie->mZombieType != ZombieType::ZOMBIE_GARGANTUAR &&
+		theZombie->mZombieType != ZombieType::ZOMBIE_REDEYE_GARGANTUAR)
 	{
-		float aDistance = EMPOWERED_PEA_KNOCKBACK;
-		if (theZombie->mZombieType == ZombieType::ZOMBIE_GARGANTUAR ||
-			theZombie->mZombieType == ZombieType::ZOMBIE_REDEYE_GARGANTUAR)
-			aDistance *= 0.5f;
+		const float aDistance = EMPOWERED_PEA_KNOCKBACK;
 		theZombie->mPosX += theZombie->IsWalkingBackwards() ? -aDistance : aDistance;
 		theZombie->mX = static_cast<int>(theZombie->mPosX);
 	}

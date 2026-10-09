@@ -685,7 +685,7 @@ void UpdateEmpowered(UnitTestRunner& runner, Board& board)
 	{
 		Zombie* zombie = board.ZombieTryToGet(peaTargets[row]);
 		const int damage = (row == 3 ? 40 : 20) * (enabled ? 7 : 6);
-		const float distance = enabled ? (row == 1 || row == 2 ? 11.525217f : 23.050434f) : 0;
+		const float distance = enabled && row != 1 && row != 2 ? 23.050434f : 0;
 		runner.Check(peaShots[row] == 6 && zombie && zombie->mBodyHealth == 10000 - damage,
 			std::format("Row {}: six real hits, damage {}", row, damage));
 		runner.Check(zombie && std::abs(zombie->mPosX - 600 - distance) < 0.001f && zombie->mX == static_cast<int>(zombie->mPosX),
@@ -1111,7 +1111,8 @@ void UpdateBurst(UnitTestRunner& runner, Board& board)
 			runner.Check(projectile->mMotionType == ProjectileMotion::MOTION_BACKWARDS, "Pea travels left");
 	if (zombie)
 	{
-		if (zombie->mPosX != targetX)
+		// Death animation can shift the body; only the live target is stationary.
+		if (!zombie->IsDeadOrDying() && zombie->mPosX != targetX)
 		{
 			runner.Check(false, "Zombie must remain stationary in column 8");
 			runner.Finish();

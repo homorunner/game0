@@ -16,8 +16,8 @@ const std::array<RogueUpgradeDefinition, upgradeCount> upgrades{{
         "治愈之光", "路灯花每秒为周围 8 格植物恢复 45 点生命。", SEED_PLANTERN, &ENABLE_PLANTERN_HEALING},
     {"PLANTERN_GREEN_VASE", "Guiding Light", "The Plantern is always inside a green vase.",
         "指路明灯", "装有路灯花的罐子必定是绿罐。", SEED_PLANTERN, &ENABLE_PLANTERN_GREEN_VASE},
-    {"EMPOWERED_PEA", "Heavy Peas", "Every third Peashooter pea deals 50% more damage and knocks enemies back.",
-        "重型豌豆", "豌豆射手每第 3 发造成 50% 额外伤害并击退敌人。", SEED_PEASHOOTER, &ENABLE_PEASHOOTER_EMPOWERED_PEA},
+    {"EMPOWERED_PEA", "Heavy Peas", "Pick up to 3 times: empower every third, second, then every pea for 50% extra damage. Gargantuars cannot be knocked back.",
+        "重型豌豆", "最多选择 3 次：每第 3 发、每第 2 发、每发豌豆强化，伤害增加 50%。巨人僵尸无法被击退。", SEED_PEASHOOTER, &ENABLE_PEASHOOTER_EMPOWERED_PEA},
     {"THREEPEATER_HOMING", "Seeking Volley", "Threepeater peas from empty lanes seek enemies in other lanes.",
         "追踪齐射", "三线射手空行的豌豆会追踪其他行的敌人。", SEED_THREEPEATER, &ENABLE_THREEPEATER_HOMING},
     {"SQUASH_ENHANCEMENT", "Heavy Landing", "Squash hits a wider area and stuns all enemies for 0.5 seconds on landing.",
@@ -49,13 +49,16 @@ int RogueRun::OfferCount() const
 int RogueRun::UpgradeLevel(RogueUpgrade id) const
 {
     if (!IsUnlocked(id)) return 0;
-    return id == RogueUpgrade::LeftpeaterBurst ? static_cast<int>(std::max(1U, leftpeaterBurstLevel)) : 1;
+    if (id == RogueUpgrade::LeftpeaterBurst) return static_cast<int>(std::max(1U, leftpeaterBurstLevel));
+    if (id == RogueUpgrade::EmpoweredPea) return static_cast<int>(std::max(1U, empoweredPeaLevel));
+    return 1;
 }
 
 bool RogueRun::CanChoose(RogueUpgrade id) const
 {
     const int index = static_cast<int>(id);
-    return index >= 0 && index < upgradeCount && UpgradeLevel(id) < (id == RogueUpgrade::LeftpeaterBurst ? 6 : 1);
+    const int maximum = id == RogueUpgrade::LeftpeaterBurst ? 6 : id == RogueUpgrade::EmpoweredPea ? 3 : 1;
+    return index >= 0 && index < upgradeCount && UpgradeLevel(id) < maximum;
 }
 
 void RogueRun::RollOffers()
@@ -82,6 +85,8 @@ bool RogueRun::Choose(int slot)
     if (!CanChoose(static_cast<RogueUpgrade>(id))) return false;
     if (id == static_cast<int>(RogueUpgrade::LeftpeaterBurst))
         leftpeaterBurstLevel = UpgradeLevel(RogueUpgrade::LeftpeaterBurst) + 1;
+    if (id == static_cast<int>(RogueUpgrade::EmpoweredPea))
+        empoweredPeaLevel = UpgradeLevel(RogueUpgrade::EmpoweredPea) + 1;
     unlocked |= uint32_t{1} << id;
     offers.fill(-1);
     phase = RoguePhase::Advancing;
@@ -92,6 +97,7 @@ bool RogueRun::IsValid() const
 {
     if ((unlocked & ~allUpgrades) || phase < RoguePhase::Playing || phase > RoguePhase::Ended) return false;
     if (leftpeaterBurstLevel > 6 || (leftpeaterBurstLevel && !IsUnlocked(RogueUpgrade::LeftpeaterBurst))) return false;
+    if (empoweredPeaLevel > 3 || (empoweredPeaLevel && !IsUnlocked(RogueUpgrade::EmpoweredPea))) return false;
     if (!active && (unlocked || phase != RoguePhase::Playing)) return false;
     int available = 0;
     for (int id = 0; id < upgradeCount; ++id) available += CanChoose(static_cast<RogueUpgrade>(id));
@@ -99,10 +105,14 @@ bool RogueRun::IsValid() const
     const int count = phase == RoguePhase::Choosing ? OfferCount() : 0;
     if (count > std::min(3, available)) return false;
     if (phase == RoguePhase::Choosing && count == 0) return false;
-    if (phase == RoguePhase::Choosing && count != std::min(3, available) &&
-        !(leftpeaterBurstLevel == 0 && IsUnlocked(RogueUpgrade::LeftpeaterBurst) &&
-          count == std::min(3, available - 1) &&
-          std::find(offers.begin(), offers.end(), static_cast<int>(RogueUpgrade::LeftpeaterBurst)) == offers.end())) return false;
+    int legacyMissing = 0;
+    for (RogueUpgrade id : {RogueUpgrade::LeftpeaterBurst, RogueUpgrade::EmpoweredPea})
+    {
+        const uint32_t storedLevel = id == RogueUpgrade::LeftpeaterBurst ? leftpeaterBurstLevel : empoweredPeaLevel;
+        if (storedLevel == 0 && IsUnlocked(id) &&
+            std::find(offers.begin(), offers.end(), static_cast<int>(id)) == offers.end()) ++legacyMissing;
+    }
+    if (phase == RoguePhase::Choosing && count < std::min(3, available - legacyMissing)) return false;
     uint32_t seen = 0;
     for (int slot = 0; slot < 3; ++slot)
     {

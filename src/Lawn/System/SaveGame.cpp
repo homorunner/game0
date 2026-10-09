@@ -94,8 +94,8 @@ enum SaveChunkTypeV4
 };
 
 static constexpr const uint32_t SAVE4_CHUNK_VERSION = 1U;
-static constexpr const uint32_t SAVE4_ROGUE_SCHEMA = 2U;
-static constexpr const uint32_t SAVE4_ROGUE_DATA_SIZE = 29U;
+static constexpr const uint32_t SAVE4_ROGUE_SCHEMA = 3U;
+static constexpr const uint32_t SAVE4_ROGUE_DATA_SIZE = 33U;
 
 static void AppendU32LE(std::vector<unsigned char>& theOut, uint32_t theValue)
 {
@@ -2054,6 +2054,7 @@ static bool WriteChunkV4(std::vector<unsigned char>& thePayload, uint32_t theChu
 		for (int32_t aOffer : aRun.offers)
 			AppendU32LE(aChunk, static_cast<uint32_t>(aOffer));
 		AppendU32LE(aChunk, aRun.leftpeaterBurstLevel);
+		AppendU32LE(aChunk, aRun.empoweredPeaLevel);
 		AppendChunk(thePayload, theChunkType, aChunk);
 		return true;
 	}
@@ -2086,7 +2087,7 @@ static bool WriteChunkV4(std::vector<unsigned char>& thePayload, uint32_t theChu
 static bool ReadRogueRunChunkV4(const unsigned char* theData, size_t theSize, RogueRun& theRun)
 {
 	// Read both legacy toggles and stacked upgrades, with no trailing bytes.
-	if (theSize != 12U + SAVE4_ROGUE_DATA_SIZE && theSize != 12U + 25U)
+	if (theSize != 12U + SAVE4_ROGUE_DATA_SIZE && theSize != 12U + 29U && theSize != 12U + 25U)
 		return false;
 	TLVReader aReader(theData, theSize);
 	uint32_t aVersion = 0;
@@ -2100,6 +2101,7 @@ static bool ReadRogueRunChunkV4(const unsigned char* theData, size_t theSize, Ro
 		!aReader.ReadU32(aFieldId) || aFieldId != 1U ||
 		!aReader.ReadU32(aFieldSize) || aFieldSize != theSize - 12U ||
 		!aReader.ReadU32(aSchema) || !((aSchema == 1U && aFieldSize == 25U) ||
+			(aSchema == 2U && aFieldSize == 29U) ||
 			(aSchema == SAVE4_ROGUE_SCHEMA && aFieldSize == SAVE4_ROGUE_DATA_SIZE)) ||
 		!aReader.ReadBytes(aActive, 1) || *aActive > 1 ||
 		!aReader.ReadU32(aRun.unlocked) || !aReader.ReadU32(aPhase) ||
@@ -2114,7 +2116,8 @@ static bool ReadRogueRunChunkV4(const unsigned char* theData, size_t theSize, Ro
 			return false;
 		aOffer = static_cast<int32_t>(aValue);
 	}
-	if (aSchema == SAVE4_ROGUE_SCHEMA && !aReader.ReadU32(aRun.leftpeaterBurstLevel)) return false;
+	if (aSchema >= 2U && !aReader.ReadU32(aRun.leftpeaterBurstLevel)) return false;
+	if (aSchema >= 3U && !aReader.ReadU32(aRun.empoweredPeaLevel)) return false;
 	if (!aReader.mOk || aReader.mPos != aReader.mSize || !aRun.IsValid())
 		return false;
 	theRun = aRun;

@@ -36,8 +36,9 @@ struct RogueRun
 {
     bool active = false;
     uint32_t unlocked = 0;
-    // Zero also represents legacy saves: an unlocked burst then means level 1.
+    // Zero also represents legacy saves: an unlocked upgrade then means level 1.
     uint32_t leftpeaterBurstLevel = 0;
+    uint32_t empoweredPeaLevel = 0;
     RoguePhase phase = RoguePhase::Playing;
     std::array<int32_t, 3> offers{-1, -1, -1};
 

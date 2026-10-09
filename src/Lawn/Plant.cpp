@@ -4793,7 +4793,9 @@ void Plant::Fire(Zombie* theTargetZombie, int theRow, PlantWeapon thePlantWeapon
 	aProjectile->mDamageRangeFlags = GetDamageRangeFlags(thePlantWeapon);
 	if (mSeedType == SeedType::SEED_PEASHOOTER)
 	{
-		mPeashooterShotCount = (mPeashooterShotCount + 1) % 3;
+		const int level = mBoard->mRogueRun.active ? mBoard->mRogueRun.UpgradeLevel(RogueUpgrade::EmpoweredPea) : 1;
+		const int interval = 4 - std::max(1, level);
+		mPeashooterShotCount = (mPeashooterShotCount + 1) % interval;
 		aProjectile->mEmpoweredPea = mBoard->IsUpgradeEnabled(RogueUpgrade::EmpoweredPea) && mPeashooterShotCount == 0;
 	}
 

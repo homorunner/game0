@@ -41,6 +41,7 @@ RogueUpgradeDialog::RogueUpgradeDialog(LawnApp* theApp) :
     mOffers(mOfferBoard ? mOfferBoard->mRogueRun.offers : std::array<int32_t, 3>{-1, -1, -1}),
     mUnlocked(mOfferBoard ? mOfferBoard->mRogueRun.unlocked : 0),
     mBurstLevel(mOfferBoard ? mOfferBoard->mRogueRun.leftpeaterBurstLevel : 0),
+    mEmpoweredLevel(mOfferBoard ? mOfferBoard->mRogueRun.empoweredPeaLevel : 0),
     mOfferCount(mOfferBoard ? std::clamp(mOfferBoard->mRogueRun.OfferCount(), 0, 3) : 0)
 {
     // The standard shell tiles rather than stretches: keep its real edges on screen.
@@ -70,6 +71,7 @@ bool RogueUpgradeDialog::OffersAreCurrent() const
         aBoard->mRogueRun.phase != RoguePhase::Choosing ||
         aBoard->mRogueRun.offers != mOffers || aBoard->mRogueRun.unlocked != mUnlocked ||
         aBoard->mRogueRun.leftpeaterBurstLevel != mBurstLevel ||
+        aBoard->mRogueRun.empoweredPeaLevel != mEmpoweredLevel ||
         aBoard->mRogueRun.OfferCount() != mOfferCount || mOfferCount == 0)
         return false;
 
@@ -173,6 +175,17 @@ void RogueUpgradeDialog::Draw(Graphics* g)
             description = CanRender(&aDescriptionGraphics, zh) ? zh :
                 "Level " + std::to_string(next) + "/6: fire " + std::to_string(peas) +
                 " peas when planted. Pick again to double the volley; firing interval stays the same.";
+        }
+        if (mOffers[slot] == static_cast<int>(RogueUpgrade::EmpoweredPea))
+        {
+            const int next = mOfferBoard->mRogueRun.UpgradeLevel(RogueUpgrade::EmpoweredPea) + 1;
+            const std::string frequency = next == 3 ? "每发" : "每第 " + std::to_string(4 - next) + " 发";
+            const std::string zh = "选择后 " + std::to_string(next) + "/3 级：" + frequency +
+                "豌豆强化，伤害增加 50%，击退普通僵尸。巨人僵尸免疫击退。";
+            description = CanRender(&aDescriptionGraphics, zh) ? zh :
+                "Level " + std::to_string(next) + "/3: empower " +
+                (next == 3 ? std::string("every pea") : next == 2 ? std::string("every second pea") : std::string("every third pea")) +
+                ". +50% damage and knockback. Gargantuars cannot be knocked back.";
         }
         aDescriptionGraphics.WriteWordWrapped(aDescriptionRect, description, 18, -1);
 

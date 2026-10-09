@@ -26,7 +26,8 @@ constexpr uint32_t allUpgrades = (uint32_t{1} << upgradeCount) - 1;
 
 bool SameRun(const RogueRun& a, const RogueRun& b)
 {
-	return a.active == b.active && a.unlocked == b.unlocked && a.leftpeaterBurstLevel == b.leftpeaterBurstLevel && a.phase == b.phase && a.offers == b.offers;
+	return a.active == b.active && a.unlocked == b.unlocked && a.leftpeaterBurstLevel == b.leftpeaterBurstLevel &&
+		a.empoweredPeaLevel == b.empoweredPeaLevel && a.phase == b.phase && a.offers == b.offers;
 }
 
 Board& NewRogueBoard(LawnApp& app)
@@ -150,7 +151,7 @@ void SetupRogueSampling(UnitTestRunner& runner, LawnApp& app)
 			run.unlocked = mask;
 			run.phase = RoguePhase::Reward;
 			run.RollOffers();
-			const int count = std::min(3, upgradeCount - std::popcount(mask) + ((mask & 1U) ? 1 : 0));
+			const int count = std::min(3, upgradeCount - std::popcount(mask) + ((mask & 1U) ? 1 : 0) + ((mask & 8U) ? 1 : 0));
 			valid &= run.IsValid() && run.OfferCount() == count &&
 				run.phase == (count ? RoguePhase::Choosing : RoguePhase::Advancing);
 			uint32_t seen = 0;
@@ -191,7 +192,7 @@ void SetupRogueStages(UnitTestRunner& runner, LawnApp& app)
 	Board& board = NewRogueBoard(app);
 	bool checkedGreen = false;
 	// Cross the old every-ten-stages award boundary and keep going after all unlocks.
-	for (int stage = 0; stage < 14; ++stage)
+	for (int stage = 0; stage < 16; ++stage)
 	{
 		for (Coin* coin : board.mCoins) coin->Die();
 		board.ProcessDeleteQueue();
@@ -280,7 +281,8 @@ void SetupRogueStages(UnitTestRunner& runner, LawnApp& app)
 		board.UpdateLevelEndSequence();
 		runner.Check(board.mChallenge->mSurvivalStage == stage + 1, "Further updates do not advance Playing again");
 	}
-	runner.Check(checkedGreen && board.mRogueRun.unlocked == allUpgrades && board.mRogueRun.UpgradeLevel(RogueUpgrade::LeftpeaterBurst) == 6 && board.mChallenge->mSurvivalStage == 14,
+	runner.Check(checkedGreen && board.mRogueRun.unlocked == allUpgrades && board.mRogueRun.UpgradeLevel(RogueUpgrade::LeftpeaterBurst) == 6 &&
+		board.mRogueRun.UpgradeLevel(RogueUpgrade::EmpoweredPea) == 3 && board.mChallenge->mSurvivalStage == 16,
 		"Full run unlocks every upgrade and continues beyond the old tenth-stage award boundary");
 	runner.Finish();
 }
@@ -340,6 +342,7 @@ void SetupRoguePersistence(UnitTestRunner& runner, LawnApp& app)
 	{
 		Board& board = NewRogueBoard(app);
 		board.mRogueRun.unlocked = allUpgrades ^ ((uint32_t{1} << remaining) - 1);
+		board.mRogueRun.empoweredPeaLevel = 3;
 		board.mRogueRun.phase = RoguePhase::Reward;
 		board.mRogueRun.RollOffers();
 		runner.Check(board.mRogueRun.OfferCount() == remaining, "Reduced offer fixture has the expected count");
@@ -356,6 +359,7 @@ void SetupRogueBurstStacks(UnitTestRunner& runner, LawnApp& app)
 		// All other upgrades are exhausted, so the burst is the only candidate.
 		board.mRogueRun.unlocked = allUpgrades;
 		board.mRogueRun.leftpeaterBurstLevel = level;
+		board.mRogueRun.empoweredPeaLevel = 3;
 		runner.Check(RoundTripRogue(runner, app), "Stack level survives save/load");
 		Board& loaded = *app.mBoard;
 		loaded.mProjectiles.DataArrayFreeAll();
@@ -403,6 +407,66 @@ void SetupRogueBurstStacks(UnitTestRunner& runner, LawnApp& app)
 	runner.Finish();
 }
 
+void SetupRogueEmpoweredStacks(UnitTestRunner& runner, LawnApp& app)
+{
+	for (int level = 1; level <= 3; ++level)
+	{
+		Board& board = NewRogueBoard(app);
+		board.mRogueRun.unlocked = allUpgrades;
+		board.mRogueRun.leftpeaterBurstLevel = 6;
+		board.mRogueRun.empoweredPeaLevel = level;
+		board.mProjectiles.DataArrayFreeAll();
+		Plant* first = board.AddPlant(0, 0, SEED_PEASHOOTER);
+		Plant* second = board.AddPlant(0, 1, SEED_PEASHOOTER);
+		first->Fire(nullptr, 0);
+		second->Fire(nullptr, 1);
+		bool pattern = true;
+		for (Projectile* pea : board.mProjectiles) pattern &= pea->mEmpoweredPea == (level == 3);
+		if (!RoundTripRogue(runner, app)) continue;
+		Board& restored = *app.mBoard;
+		first = restored.GetTopPlantAt(0, 0, PlantPriority::TOPPLANT_BUNGEE_ORDER);
+		second = restored.GetTopPlantAt(0, 1, PlantPriority::TOPPLANT_BUNGEE_ORDER);
+		runner.Check(first && second, "Both Peashooters survive the stack-level roundtrip");
+		if (!first || !second) continue;
+		for (int shot = 2; shot <= 6; ++shot)
+		{
+			restored.mProjectiles.DataArrayFreeAll();
+			first->Fire(nullptr, 0);
+			second->Fire(nullptr, 1);
+			pattern &= restored.mProjectiles.mSize == 2;
+			for (Projectile* pea : restored.mProjectiles)
+				pattern &= pea->mEmpoweredPea == (shot % (4 - level) == 0) &&
+					pea->GetVisualScale() == (pea->mEmpoweredPea ? 1.5f : 1.0f);
+		}
+		runner.Check(pattern, std::format("Heavy Peas level {}: every {} shot is empowered independently, including after reload", level, 4 - level));
+		restored.mRogueRun.phase = RoguePhase::Reward;
+		restored.mRogueRun.RollOffers();
+		runner.Check(restored.mRogueRun.IsValid() && restored.mRogueRun.OfferCount() == (level < 3 ? 1 : 0),
+			"Heavy Peas remains in the pool until level three, then leaves");
+		if (level < 3)
+			runner.Check(restored.mRogueRun.offers[0] == static_cast<int>(RogueUpgrade::EmpoweredPea) &&
+				restored.mRogueRun.Choose(0) && restored.mRogueRun.UpgradeLevel(RogueUpgrade::EmpoweredPea) == level + 1,
+				"Repeat Heavy Peas choice advances one level");
+		else runner.Check(!restored.mRogueRun.Choose(0), "Fourth Heavy Peas pick is rejected");
+	}
+	for (int burst = 0; burst <= 6; ++burst)
+	for (int empowered = 0; empowered <= 3; ++empowered)
+	{
+		RogueRun run;
+		run.active = true;
+		run.unlocked = allUpgrades & ~9U;
+		if (burst) run.unlocked |= 1U;
+		if (empowered) run.unlocked |= 8U;
+		run.leftpeaterBurstLevel = burst;
+		run.empoweredPeaLevel = empowered;
+		run.phase = RoguePhase::Reward;
+		run.RollOffers();
+		runner.Check(run.IsValid() && run.OfferCount() == (burst < 6) + (empowered < 3),
+			std::format("Mixed levels burst={}/heavy={}: only eligible upgrades offered", burst, empowered));
+	}
+	runner.Finish();
+}
+
 void SetupRogueInvalidSaves(UnitTestRunner& runner, LawnApp& app)
 {
 	Board& board = NewRogueBoard(app);
@@ -428,16 +492,16 @@ void SetupRogueInvalidSaves(UnitTestRunner& runner, LawnApp& app)
 		chunk += 8 + size;
 	}
 	// SAVE4 header: 24 bytes. Chunk 21: version, field header, schema, active byte, mask, phase, offers.
-	const bool schema = chunk + 49 <= original.size() && read32(chunk) == 21 && read32(chunk + 4) == 41 &&
-		read32(chunk + 8) == 1 && read32(chunk + 12) == 1 && read32(chunk + 16) == 29 && read32(chunk + 20) == 2;
-	runner.Check(schema, "Writer emits mandatory chunk 21 with schema-2 stack count");
+	const bool schema = chunk + 53 <= original.size() && read32(chunk) == 21 && read32(chunk + 4) == 45 &&
+		read32(chunk + 8) == 1 && read32(chunk + 12) == 1 && read32(chunk + 16) == 33 && read32(chunk + 20) == 3;
+	runner.Check(schema, "Writer emits mandatory chunk 21 with schema-3 stack counts");
 	if (!schema) { runner.Finish(); return; }
 	app.MakeNewBoard();
 	runner.Check(LawnLoadGame(app.mBoard, path), "Unmodified source save loads before corruption");
 	constexpr std::array names{"missing chunk 21 (pre-rogue SAVE4)", "duplicate chunk 21", "invalid phase",
 		"unknown unlock bit", "duplicate offers", "already-unlocked offer", "invalid active boolean",
 		"inactive endless run", "unknown schema", "out-of-range offer", "invalid negative offer", "Ended phase",
-		"burst level above six", "burst level without unlock"};
+		"burst level above six", "burst level without unlock", "empowered level above three", "empowered level without unlock"};
 	for (int variant = 0; variant < static_cast<int>(names.size()); ++variant)
 	{
 		auto bytes = original;
@@ -447,12 +511,14 @@ void SetupRogueInvalidSaves(UnitTestRunner& runner, LawnApp& app)
 		};
 		switch (variant)
 		{
-		case 0: bytes.erase(bytes.begin() + chunk, bytes.begin() + chunk + 49); break;
-		case 1: bytes.insert(bytes.end(), original.begin() + chunk, original.begin() + chunk + 49); break;
+		case 0: bytes.erase(bytes.begin() + chunk, bytes.begin() + chunk + 53); break;
+		case 1: bytes.insert(bytes.end(), original.begin() + chunk, original.begin() + chunk + 53); break;
 		case 2: write32(chunk + 29, 99); break;
 		case 3: write32(chunk + 25, uint32_t{1} << 31); break;
 		case 4: write32(chunk + 37, read32(chunk + 33)); break;
-		case 5: write32(chunk + 25, uint32_t{1} << read32(chunk + 33)); write32(chunk + 45, read32(chunk + 33) == 0 ? 6 : 0); break;
+		case 5: write32(chunk + 25, uint32_t{1} << read32(chunk + 33));
+			write32(chunk + 45, read32(chunk + 33) == 0 ? 6 : 0);
+			write32(chunk + 49, read32(chunk + 33) == 3 ? 3 : 0); break;
 		case 6: bytes.at(chunk + 24) = 2; break;
 		case 7: bytes.at(chunk + 24) = 0; break;
 		case 8: write32(chunk + 20, 99); break;
@@ -461,6 +527,8 @@ void SetupRogueInvalidSaves(UnitTestRunner& runner, LawnApp& app)
 		case 11: write32(chunk + 29, static_cast<uint32_t>(RoguePhase::Ended)); break;
 		case 12: write32(chunk + 45, 7); break;
 		case 13: write32(chunk + 25, 0); write32(chunk + 45, 1); break;
+		case 14: write32(chunk + 49, 4); break;
+		case 15: write32(chunk + 25, 0); write32(chunk + 49, 1); break;
 		}
 		write32(16, static_cast<uint32_t>(bytes.size() - 24));
 		write32(20, crc32(0, bytes.data() + 24, static_cast<uInt>(bytes.size() - 24)));
@@ -475,29 +543,34 @@ void SetupRogueInvalidSaves(UnitTestRunner& runner, LawnApp& app)
 				fresh.mChallenge->mSurvivalStage == 73 && fresh.mChallenge->ScaryPotterCountPots() == 35,
 				std::format("Reject {} before mutating the destination board", names[variant]));
 	}
-	// Convert the source chunk into a genuine schema-1 layout. Its unlocked
-	// burst must load as level one and remain eligible for future rewards.
+	// Old saves preserve the exact reduced offer list, while newly repeatable
+	// upgrades become level one and eligible for future rewards.
+	for (uint32_t legacySchema : {1U, 2U})
 	{
 		auto legacy = original;
 		auto writeLegacy = [&](size_t pos, uint32_t value)
 		{
 			for (int byte = 0; byte < 4; ++byte) legacy.at(pos + byte) = static_cast<unsigned char>(value >> (8 * byte));
 		};
-		legacy.erase(legacy.begin() + chunk + 45, legacy.begin() + chunk + 49);
-		writeLegacy(chunk + 4, 37);
-		writeLegacy(chunk + 16, 25);
-		writeLegacy(chunk + 20, 1);
-		writeLegacy(chunk + 25, 1);
-		writeLegacy(chunk + 33, 1);
-		writeLegacy(chunk + 37, 2);
-		writeLegacy(chunk + 41, 3);
+		const uint32_t legacySize = legacySchema == 1 ? 25 : 29;
+		legacy.erase(legacy.begin() + chunk + 8 + 12 + legacySize, legacy.begin() + chunk + 53);
+		writeLegacy(chunk + 4, 12 + legacySize);
+		writeLegacy(chunk + 16, legacySize);
+		writeLegacy(chunk + 20, legacySchema);
+		writeLegacy(chunk + 25, allUpgrades ^ 128U);
+		writeLegacy(chunk + 33, 7);
+		writeLegacy(chunk + 37, static_cast<uint32_t>(-1));
+		writeLegacy(chunk + 41, static_cast<uint32_t>(-1));
+		if (legacySchema == 2) writeLegacy(chunk + 45, 6);
 		writeLegacy(16, static_cast<uint32_t>(legacy.size() - 24));
 		writeLegacy(20, crc32(0, legacy.data() + 24, static_cast<uInt>(legacy.size() - 24)));
 		buffer.SetData(legacy);
 		Board& old = NewRogueBoard(app);
 		runner.Check(app.WriteBufferToFile(path, &buffer) && LawnLoadGame(&old, path) &&
-			old.mRogueRun.UpgradeLevel(RogueUpgrade::LeftpeaterBurst) == 1 && old.mRogueRun.CanChoose(RogueUpgrade::LeftpeaterBurst),
-			"Schema-1 unlocked burst loads as level one and can be picked again");
+			old.mRogueRun.UpgradeLevel(RogueUpgrade::LeftpeaterBurst) == (legacySchema == 1 ? 1 : 6) &&
+			old.mRogueRun.UpgradeLevel(RogueUpgrade::EmpoweredPea) == 1 && old.mRogueRun.CanChoose(RogueUpgrade::EmpoweredPea) &&
+			old.mRogueRun.offers == std::array<int32_t, 3>{7, -1, -1},
+			std::format("Schema {} preserves burst level and exact old offers; Heavy Peas starts at level one", legacySchema));
 	}
 	Board& invalid = NewRogueBoard(app);
 	invalid.mRogueRun.phase = RoguePhase::Advancing;
@@ -655,6 +728,7 @@ void RegisterRogueTests(UnitTestRunner& runner)
 	runner.Register({"rogue rewards and complete stage progression", SetupRogueStages, nullptr, nullptr, 1});
 	runner.Register({"rogue four-phase persistence and exact offers", SetupRoguePersistence, nullptr, nullptr, 1});
 	runner.Register({"rogue burst stacks, timing and persistence", SetupRogueBurstStacks, nullptr, nullptr, 1});
+	runner.Register({"rogue Heavy Peas stacks and independent shot counters", SetupRogueEmpoweredStacks, nullptr, nullptr, 1});
 	runner.Register({"rogue mandatory chunk and invalid save rejection", SetupRogueInvalidSaves, nullptr, nullptr, 1});
 	runner.Register({"rogue modal input and dialog lifecycle", SetupRogueInput, nullptr, nullptr, 1});
 	runner.Register({"rogue loss and restart", SetupRogueLoss, nullptr, nullptr, 1});
