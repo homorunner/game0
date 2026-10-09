@@ -2122,7 +2122,10 @@ Plant* Board::AddPlant(int theGridX, int theGridY, SeedType theSeedType, SeedTyp
 		aPlant->mSeedType == SeedType::SEED_LEFTPEATER && aPlant->IsInPlay())
 	{
 		aPlant->FireLeftpeaterPlantingBurstShot();
-		aPlant->mStateCountdown = 51;
+		const int level = mRogueRun.active ? mRogueRun.UpgradeLevel(RogueUpgrade::LeftpeaterBurst) : 1;
+		const int peas = 4 << (level - 1);
+		// One immediate pea, then one pea every 16 ticks.
+		aPlant->mStateCountdown = 1 + (peas - 1) * 16;
 	}
 
 	return aPlant;

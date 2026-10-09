@@ -959,11 +959,11 @@ void Plant::FireLeftpeaterPlantingBurstShot()
 
 void Plant::UpdateShooter()
 {
-	// UpdateAbilities decrements this timer first; match Gatling's 17/16/17-tick spacing.
+	// UpdateAbilities decrements this timer before checking the next shot.
 	if (mBoard->IsUpgradeEnabled(RogueUpgrade::LeftpeaterBurst) &&
 		mSeedType == SeedType::SEED_LEFTPEATER && mStateCountdown > 0)
 	{
-		if (mStateCountdown == 34 || mStateCountdown == 18 || mStateCountdown == 1)
+		if (mStateCountdown % 16 == 1)
 		{
 			FireLeftpeaterPlantingBurstShot();
 			if (mStateCountdown == 1)

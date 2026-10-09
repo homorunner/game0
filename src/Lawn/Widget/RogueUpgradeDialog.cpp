@@ -40,6 +40,7 @@ RogueUpgradeDialog::RogueUpgradeDialog(LawnApp* theApp) :
     mOfferBoard(theApp->mBoard),
     mOffers(mOfferBoard ? mOfferBoard->mRogueRun.offers : std::array<int32_t, 3>{-1, -1, -1}),
     mUnlocked(mOfferBoard ? mOfferBoard->mRogueRun.unlocked : 0),
+    mBurstLevel(mOfferBoard ? mOfferBoard->mRogueRun.leftpeaterBurstLevel : 0),
     mOfferCount(mOfferBoard ? std::clamp(mOfferBoard->mRogueRun.OfferCount(), 0, 3) : 0)
 {
     // The standard shell tiles rather than stretches: keep its real edges on screen.
@@ -68,13 +69,14 @@ bool RogueUpgradeDialog::OffersAreCurrent() const
     if (!aBoard || aBoard != mOfferBoard || !aBoard->mRogueRun.active ||
         aBoard->mRogueRun.phase != RoguePhase::Choosing ||
         aBoard->mRogueRun.offers != mOffers || aBoard->mRogueRun.unlocked != mUnlocked ||
+        aBoard->mRogueRun.leftpeaterBurstLevel != mBurstLevel ||
         aBoard->mRogueRun.OfferCount() != mOfferCount || mOfferCount == 0)
         return false;
 
     for (int i = 0; i < mOfferCount; ++i)
     {
         if (mOffers[i] < 0 || mOffers[i] >= static_cast<int>(RogueUpgrade::COUNT) ||
-            aBoard->mRogueRun.IsUnlocked(static_cast<RogueUpgrade>(mOffers[i])))
+            !aBoard->mRogueRun.CanChoose(static_cast<RogueUpgrade>(mOffers[i])))
             return false;
     }
     return true;
@@ -160,8 +162,19 @@ void RogueUpgradeDialog::Draw(Graphics* g)
         aDescriptionGraphics.ClipRect(aDescriptionRect);
         aDescriptionGraphics.SetFont(FONT_BRIANNETOD12);
         aDescriptionGraphics.SetColor(aInk);
-        aDescriptionGraphics.WriteWordWrapped(aDescriptionRect,
-            Localized(&aDescriptionGraphics, aKey + "_DESC", aDefinition.description, aKey + "_DESC_ZH", aDefinition.descriptionZh), 18, -1);
+        std::string description = Localized(&aDescriptionGraphics, aKey + "_DESC", aDefinition.description,
+            aKey + "_DESC_ZH", aDefinition.descriptionZh);
+        if (mOffers[slot] == static_cast<int>(RogueUpgrade::LeftpeaterBurst))
+        {
+            const int next = mOfferBoard->mRogueRun.UpgradeLevel(RogueUpgrade::LeftpeaterBurst) + 1;
+            const int peas = 4 << (next - 1);
+            const std::string zh = "选择后 " + std::to_string(next) + "/6 级：种植后连射 " +
+                std::to_string(peas) + " 发豌豆。可重复选择，数量翻倍，发射间隔不变。";
+            description = CanRender(&aDescriptionGraphics, zh) ? zh :
+                "Level " + std::to_string(next) + "/6: fire " + std::to_string(peas) +
+                " peas when planted. Pick again to double the volley; firing interval stays the same.";
+        }
+        aDescriptionGraphics.WriteWordWrapped(aDescriptionRect, description, 18, -1);
 
         g->SetColor(aFocused ? Color(69, 103, 40) : Color(132, 125, 87));
         g->FillRect(r.mX + 12, r.mY + r.mHeight - 32, r.mWidth - 24, 21);

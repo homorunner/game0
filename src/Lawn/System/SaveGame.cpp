@@ -94,8 +94,8 @@ enum SaveChunkTypeV4
 };
 
 static constexpr const uint32_t SAVE4_CHUNK_VERSION = 1U;
-static constexpr const uint32_t SAVE4_ROGUE_SCHEMA = 1U;
-static constexpr const uint32_t SAVE4_ROGUE_DATA_SIZE = 25U;
+static constexpr const uint32_t SAVE4_ROGUE_SCHEMA = 2U;
+static constexpr const uint32_t SAVE4_ROGUE_DATA_SIZE = 29U;
 
 static void AppendU32LE(std::vector<unsigned char>& theOut, uint32_t theValue)
 {
@@ -2053,6 +2053,7 @@ static bool WriteChunkV4(std::vector<unsigned char>& thePayload, uint32_t theChu
 		AppendU32LE(aChunk, static_cast<uint32_t>(aRun.phase));
 		for (int32_t aOffer : aRun.offers)
 			AppendU32LE(aChunk, static_cast<uint32_t>(aOffer));
+		AppendU32LE(aChunk, aRun.leftpeaterBurstLevel);
 		AppendChunk(thePayload, theChunkType, aChunk);
 		return true;
 	}
@@ -2084,8 +2085,8 @@ static bool WriteChunkV4(std::vector<unsigned char>& thePayload, uint32_t theChu
 
 static bool ReadRogueRunChunkV4(const unsigned char* theData, size_t theSize, RogueRun& theRun)
 {
-	// Schema 1 has exactly one data field, with no nested TLV or trailing bytes.
-	if (theSize != 12U + SAVE4_ROGUE_DATA_SIZE)
+	// Read both legacy toggles and stacked upgrades, with no trailing bytes.
+	if (theSize != 12U + SAVE4_ROGUE_DATA_SIZE && theSize != 12U + 25U)
 		return false;
 	TLVReader aReader(theData, theSize);
 	uint32_t aVersion = 0;
@@ -2097,8 +2098,9 @@ static bool ReadRogueRunChunkV4(const unsigned char* theData, size_t theSize, Ro
 	RogueRun aRun;
 	if (!aReader.ReadU32(aVersion) || aVersion != SAVE4_CHUNK_VERSION ||
 		!aReader.ReadU32(aFieldId) || aFieldId != 1U ||
-		!aReader.ReadU32(aFieldSize) || aFieldSize != SAVE4_ROGUE_DATA_SIZE ||
-		!aReader.ReadU32(aSchema) || aSchema != SAVE4_ROGUE_SCHEMA ||
+		!aReader.ReadU32(aFieldSize) || aFieldSize != theSize - 12U ||
+		!aReader.ReadU32(aSchema) || !((aSchema == 1U && aFieldSize == 25U) ||
+			(aSchema == SAVE4_ROGUE_SCHEMA && aFieldSize == SAVE4_ROGUE_DATA_SIZE)) ||
 		!aReader.ReadBytes(aActive, 1) || *aActive > 1 ||
 		!aReader.ReadU32(aRun.unlocked) || !aReader.ReadU32(aPhase) ||
 		aPhase >= static_cast<uint32_t>(RoguePhase::Ended))
@@ -2112,6 +2114,7 @@ static bool ReadRogueRunChunkV4(const unsigned char* theData, size_t theSize, Ro
 			return false;
 		aOffer = static_cast<int32_t>(aValue);
 	}
+	if (aSchema == SAVE4_ROGUE_SCHEMA && !aReader.ReadU32(aRun.leftpeaterBurstLevel)) return false;
 	if (!aReader.mOk || aReader.mPos != aReader.mSize || !aRun.IsValid())
 		return false;
 	theRun = aRun;

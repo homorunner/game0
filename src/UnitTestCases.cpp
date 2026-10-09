@@ -31,7 +31,7 @@ PlantID shooter;
 float targetX;
 int shots, lastHealth;
 bool sawDeath;
-constexpr std::array shotTicks{0, 17, 33, 50};
+constexpr std::array shotTicks{0, 16, 32, 48};
 
 std::array<PlantID, 5> peaPlants;
 std::array<ZombieID, 5> peaTargets;
@@ -1098,7 +1098,7 @@ void Shot(UnitTestRunner& runner, const Projectile& projectile)
 {
 	++shots;
 	runner.Check(shots <= 4 && runner.Tick() == shotTicks[shots <= 4 ? shots - 1 : 3],
-		std::format("Shot {} created (expected ticks 0,17,33,50)", shots));
+		std::format("Shot {} created (expected ticks 0,16,32,48)", shots));
 	runner.Check(projectile.mRow == 2 && projectile.mProjectileType == ProjectileType::PROJECTILE_PEA,
 		"Pea fired in row 3");
 }
@@ -1125,16 +1125,16 @@ void UpdateBurst(UnitTestRunner& runner, Board& board)
 		sawDeath |= zombie->mDead || zombie->mBodyHealth <= 0;
 	}
 	else sawDeath = true;
-	if (runner.Tick() == 1 || runner.Tick() == 17 || runner.Tick() == 33)
+	if (runner.Tick() == 1 || runner.Tick() == 16 || runner.Tick() == 32)
 		runner.Check(zombie && zombie->mBodyHealth == 80 - 20 * shots && !sawDeath,
 			std::format("Shot {} dealt 20 damage; target still alive", shots));
-	if (runner.Tick() == 50)
+	if (runner.Tick() == 48)
 	{
 		runner.Check(shots == 4 && zombie && zombie->mBodyHealth == 0,
-			"Fourth shot killed the target at tick 50");
+			"Fourth shot killed the target at tick 48");
 		Plant* plant = board.mPlants.DataArrayTryToGet(static_cast<unsigned int>(shooter));
 		runner.Check(plant && !plant->mDead && plant->mLaunchCounter == 120,
-			"Launch counter reset to 120 at tick 50");
+			"Launch counter reset to 120 at tick 48");
 		Reanimation* head = plant ? board.mApp->ReanimationTryToGet(plant->mHeadReanimID) : nullptr;
 		int frameStart = -1, frameCount = -1;
 		if (head && head->TrackExists("anim_shooting"))
@@ -1143,11 +1143,11 @@ void UpdateBurst(UnitTestRunner& runner, Board& board)
 			head->mLoopType == ReanimLoopType::REANIM_PLAY_ONCE_AND_HOLD && head->mAnimRate == 45.0f,
 			"Fourth shot plays the shooting animation");
 	}
-	if (runner.Tick() == 51)
+	if (runner.Tick() == 49)
 	{
 		Plant* plant = board.mPlants.DataArrayTryToGet(static_cast<unsigned int>(shooter));
 		runner.Check(plant && !plant->mDead && plant->mLaunchCounter == 119,
-			"Launch counter decremented to 119 at tick 51");
+			"Launch counter decremented to 119 at tick 49");
 	}
 	// Observe past the burst and projectile travel, but before the next normal volley.
 	if (runner.Tick() == 140)

@@ -33,10 +33,10 @@ Use object IDs rather than retaining pointers across deletion queues.
 The leftpeater burst case uses one-based row 3 / column 8 for a stationary normal
 zombie and row 3 / column 9 for the leftpeater. Current and maximum health
 are both 80; normal headless decay is allowed after shot three. It verifies
-leftward peas at ticks 0, 17, 33, 50, damage and fourth-shot death, and keeps
+leftward peas at ticks 0, 16, 32, 48, damage and fourth-shot death, and keeps
 observing through tick 140 to reject extra burst shots. It also checks the
-shooting animation and launch-counter reset to 120 at tick 50, followed by
-the normal decrement to 119 at tick 51, resolving the plant by ID.
+shooting animation and launch-counter reset to 120 at tick 48, followed by
+the normal decrement to 119 at tick 49, resolving the plant by ID.
 
 The disabled burst case sets the runtime global `ENABLE_LEFTPEATER_PLANTING_BURST`
 to false before planting. It checks that no bonus shot or animation is
@@ -332,8 +332,11 @@ The fixed 600 bowling damage against Gargantuars remains global, not an upgrade.
 
 Every cleared stage drops a moneybag, replacing the old every-ten-stage award
 schedule. Only collecting it rolls the offer. Offers contain up to three distinct
-locked upgrades; unchosen upgrades remain eligible later. With two or one locked
-upgrades, all remaining choices are shown. Once all eight are unlocked, bag
+eligible upgrades; unchosen upgrades remain eligible later. Opening Volley can
+be selected six times, granting 4/8/16/32/64/128 peas. Each pea uses a
+fixed 16-tick firing interval, extending the volley rather than firing simultaneous
+peas. Other upgrades remain single picks. With two or one eligible upgrades,
+all remaining choices are shown. Once every upgrade reaches its maximum, bag
 collection continues to advance stages without an empty selection screen.
 
 Run phases are `Playing -> Reward -> Choosing -> Advancing -> Playing`, with
@@ -349,16 +352,19 @@ with drawn parchment cards. Mouse release over the pressed card, number keys
 reward. Localization keys use `ROGUE_*`, with English fallbacks for the supplied
 bitmap fonts. Closing the application uses the existing save-on-shutdown path.
 
-New SAVE4 chunk 21 (version 1, data field 1) stores schema 1, active flag, unlock
-mask, phase and the ordered three offer IDs. Loading preserves the exact offer,
+New SAVE4 chunk 21 (version 1, data field 1) stores schema 2, active flag, unlock
+mask, phase, the ordered three offer IDs and Opening Volley level. Schema-1 run
+saves remain readable, with an unlocked Opening Volley treated as level one.
+Loading preserves the exact offer,
 then recreates the dialog after Continue closes. Validation rejects invalid
-masks, phases, duplicate/owned offers, malformed or duplicate run chunks, and
+masks, phases, duplicate/maxed offers, invalid levels, malformed or duplicate run chunks, and
 phase/countdown mismatches. Pre-roguelike endless saves are deliberately rejected;
 no migration is provided. Non-endless saves keep their existing behavior.
 
-Eight new cases in `RogueTestCases.cpp` cover all 256 unlock masks, real scoped
-effects, twelve consecutive stage rewards (including pool exhaustion), all four
+Nine cases in `RogueTestCases.cpp` cover all 256 unlock masks, real scoped
+effects, fourteen consecutive stage rewards (including pool exhaustion), all four
 resumable phases, malformed saves, production input/update gates, actual modal
-focus and selection, and death/restart. They are appended so tests 09 and 10
+focus and selection, death/restart, all six volley counts and firing intervals,
+mid-volley save continuation, and schema-1 compatibility. They are appended so tests 09 and 10
 retain their numbering and 2x playback. The last case leaves a read-only version
 of the real three-card dialog visible during the five-second final hold.
