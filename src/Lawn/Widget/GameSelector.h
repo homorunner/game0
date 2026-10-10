@@ -25,7 +25,6 @@
 #include "../../ConstEnums.h"
 #include "widget/Widget.h"
 #include "widget/ButtonListener.h"
-#include "AchievementsScreen.h"
 #include "GameButton.h"
 #include <memory>
 
@@ -64,7 +63,6 @@ private:
 		GameSelector_ZenGarden,
 		GameSelector_Survival,
 		GameSelector_Zombatar,
-		GameSelector_Achievements
 	};
 
 public:
@@ -82,7 +80,6 @@ public:
 	NewLawnButton*              mSurvivalButton;
 	NewLawnButton*              mChangeUserButton;
 	NewLawnButton*              mZombatarButton;             //+0xC0
-	NewLawnButton*              mAchievementsButton;        //+0xC4
 	Widget*                     mOverlayWidget;
 	bool                        mStartingGame;
 	int                         mStartingGameCounter;
@@ -110,7 +107,6 @@ public:
 	int                         mDestX;                     //+0x160
 	int                         mDestY;                     //+0x164
 	std::unique_ptr<ZombatarWidget>     mZombatarWidget;       //+0x168
-	std::unique_ptr<AchievementsWidget> mAchievementsWidget;   //+0x16C
 
 public:
 	GameSelector(LawnApp* theApp);
@@ -141,7 +137,6 @@ public:
 	void                        AddPreviewProfiles();
 	void             SlideTo(int theX, int theY);
 	void                        ShowZombatarScreen();
-	void                        ShowAchievementsScreen();
 };
 
 class GameSelectorOverlay : public Widget

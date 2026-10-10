@@ -181,7 +181,7 @@ public:
 	void							PreNewGame(GameMode theGameMode, bool theLookForSavedGame);
 	void							ShowGameSelector();
 	void							KillGameSelector();
-	void							ShowAwardScreen(AwardType theAwardType, bool theShowAchievements);
+	void							ShowAwardScreen(AwardType theAwardType);
 	void							KillAwardScreen();
 	void							ShowSeedChooserScreen();
 	void							KillSeedChooserScreen();
@@ -339,6 +339,5 @@ extern bool gFastMo;
 extern bool gSlowMo;
 extern LawnApp* gLawnApp;
 extern int gSlowMoCounter;
-
 
 #endif	// __LAWNAPP_H__

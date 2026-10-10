@@ -501,7 +501,6 @@ void ZenGarden::MouseDownWithMoneySign(Plant* thePlant)
 
 		aPottedPlant = PottedPlantFromIndex(aSellPlant->mPottedPlantIndex);
 		mApp->mPlayerInfo->AddCoins(aPrice);
-		mBoard->mCoinsCollected += aPrice;
 
 		int aNumPlantsAfterThis = mApp->mPlayerInfo->mNumPottedPlants - aSellPlant->mPottedPlantIndex - 1;
 		if (aNumPlantsAfterThis > 0)

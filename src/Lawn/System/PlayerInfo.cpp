@@ -32,7 +32,7 @@
 #include "misc/Buffer.h"
 #include "../../SexyAppFramework/SexyAppBase.h"
 
-static int gUserVersion = 12;
+static int gUserVersion = 13;
 
 // Convert PottedPlant between little-endian file format and native byte order.
 // No-op on little-endian machines (entire function optimized away at compile time).
@@ -128,18 +128,6 @@ void PlayerInfo::SyncDetails(DataSync& theSync)
 			PottedPlantToLE(mPottedPlant[i]);
 		theSync.SyncBytes(&mPottedPlant[i], sizeof(PottedPlant));
 		PottedPlantFromLE(mPottedPlant[i]);
-	}
-
-	// achievements are stored as 20 x 16-bit values (0/1): https://plantsvszombies.fandom.com/wiki/User_file_format
-	for (int i = 0; i < 20; i++)
-	{
-		uint16_t aAchievementValue = mEarnedAchievements[i] ? 1 : 0;
-		theSync.SyncUInt16(aAchievementValue);
-		if (theSync.GetReader())
-		{
-			mEarnedAchievements[i] = (aAchievementValue != 0);
-			mShownAchievements[i] = mEarnedAchievements[i];
-		}
 	}
 
 	if (theSync.GetReader())
@@ -290,8 +278,6 @@ void PlayerInfo::Reset()
 	mPlaceHolderPlayerStats = 0;
 	memset(mPottedPlant, 0, sizeof(mPottedPlant));
 	mNumPottedPlants = 0;
-	memset(mEarnedAchievements, 0, sizeof(mEarnedAchievements));
-	memset(mShownAchievements, 0, sizeof(mShownAchievements));
 	mZombatarAccepted = 0;
 	mZombatarHeadCount = 0;
 	mZombatarData.clear();

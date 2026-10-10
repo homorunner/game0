@@ -10,6 +10,7 @@
 #include "Lawn/Projectile.h"
 #include "Lawn/Zombie.h"
 #include "Lawn/System/SaveGame.h"
+#include "Lawn/System/PlayerInfo.h"
 #include "Lawn/Widget/RogueUpgradeDialog.h"
 #include "misc/Buffer.h"
 #include "widget/WidgetManager.h"
@@ -467,6 +468,63 @@ void SetupRogueEmpoweredStacks(UnitTestRunner& runner, LawnApp& app)
 	runner.Finish();
 }
 
+void SetupGameplayWithoutAchievements(UnitTestRunner& runner, LawnApp& app)
+{
+	// These production attack paths used to combine damage with achievement checks.
+	for (SeedType seed : {SEED_CHERRYBOMB, SEED_POTATOMINE, SEED_COBCANNON})
+	{
+		Board& board = NewRogueBoard(app);
+		Plant* plant = board.AddPlant(3, 2, seed);
+		Zombie* nearby = board.AddZombieInRow(ZOMBIE_NORMAL, 2, 0);
+		Zombie* distant = board.AddZombieInRow(ZOMBIE_NORMAL, 2, 0);
+		nearby->mPosX = nearby->mX = plant->mX;
+		distant->mPosX = distant->mX = plant->mX + 350;
+		nearby->mBodyHealth = nearby->mBodyMaxHealth = 10000;
+		distant->mBodyHealth = distant->mBodyMaxHealth = 10000;
+		if (seed == SEED_COBCANNON)
+		{
+			Projectile* cob = board.AddProjectile(plant->mX - 40, plant->mY, 0, 2, PROJECTILE_COBBIG);
+			cob->mPosZ = 0;
+			cob->mVelX = cob->mVelY = cob->mVelZ = cob->mAccZ = 0;
+			cob->mDamageRangeFlags = plant->GetDamageRangeFlags(WEAPON_PRIMARY);
+			cob->UpdateLobMotion();
+			runner.Check(cob->mDead, "Corn blast still consumes its projectile");
+		}
+		else
+		{
+			plant->DoSpecial();
+			runner.Check(plant->mDead, "Explosive plant still dies after detonation");
+		}
+		runner.Check(nearby->mBodyHealth == 8200 && distant->mBodyHealth == 10000,
+			std::format("Seed {}: blast still deals 1800 damage in range and leaves distant zombies alone", static_cast<int>(seed)));
+	}
+	Board& board = NewRogueBoard(app);
+	const int balance = app.mPlayerInfo->mCoins;
+	for (CoinType type : {COIN_SILVER, COIN_GOLD, COIN_DIAMOND})
+	{
+		const int before = app.mPlayerInfo->mCoins;
+		Coin* coin = board.AddCoin(300, 200, type, COIN_MOTION_COIN);
+		coin->ScoreCoin();
+		runner.Check(coin->mDead && app.mPlayerInfo->mCoins == before + Coin::GetCoinValue(type),
+			"Coin scoring still credits the player's balance");
+	}
+	app.mPlayerInfo->mCoins = balance;
+	PlayerInfo profile;
+	profile.mId = 777;
+	profile.mCoins = 1234;
+	profile.mChallengeRecords[0] = 16;
+	profile.mZombatarAccepted = 1;
+	profile.mZombatarCreatedBefore = 1;
+	profile.SaveDetails();
+	PlayerInfo restored;
+	restored.mId = profile.mId;
+	restored.LoadDetails();
+	runner.Check(restored.mCoins == profile.mCoins && restored.mChallengeRecords[0] == 16 &&
+		restored.mZombatarAccepted == 1 && restored.mZombatarCreatedBefore == 1,
+		"Compact player profile roundtrip retains balance, records and the following data");
+	runner.Finish();
+}
+
 void SetupRogueInvalidSaves(UnitTestRunner& runner, LawnApp& app)
 {
 	Board& board = NewRogueBoard(app);
@@ -729,6 +787,7 @@ void RegisterRogueTests(UnitTestRunner& runner)
 	runner.Register({"rogue four-phase persistence and exact offers", SetupRoguePersistence, nullptr, nullptr, 1});
 	runner.Register({"rogue burst stacks, timing and persistence", SetupRogueBurstStacks, nullptr, nullptr, 1});
 	runner.Register({"rogue Heavy Peas stacks and independent shot counters", SetupRogueEmpoweredStacks, nullptr, nullptr, 1});
+	runner.Register({"gameplay and profiles without achievements", SetupGameplayWithoutAchievements, nullptr, nullptr, 1});
 	runner.Register({"rogue mandatory chunk and invalid save rejection", SetupRogueInvalidSaves, nullptr, nullptr, 1});
 	runner.Register({"rogue modal input and dialog lifecycle", SetupRogueInput, nullptr, nullptr, 1});
 	runner.Register({"rogue loss and restart", SetupRogueLoss, nullptr, nullptr, 1});

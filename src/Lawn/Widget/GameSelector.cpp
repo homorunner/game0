@@ -165,20 +165,6 @@ GameSelector::GameSelector(LawnApp* theApp)
 	mZombatarButton->mBtnNoDraw = true;
 	mZombatarButton->mMouseVisible = false;
 
-	mAchievementsButton = MakeNewButton(
-		GameSelector::GameSelector_Achievements,
-		this,
-		"",
-		nullptr,
-		Sexy::IMAGE_SELECTORSCREEN_ACHIEVEMENTS_PEDESTAL,
-		Sexy::IMAGE_SELECTORSCREEN_ACHIEVEMENTS_PEDESTAL_PRESS,
-		Sexy::IMAGE_SELECTORSCREEN_ACHIEVEMENTS_PEDESTAL_PRESS
-	).release();
-	mAchievementsButton->Resize(20, mApp->mHeight - Sexy::IMAGE_SELECTORSCREEN_ACHIEVEMENTS_PEDESTAL->mHeight - 35, Sexy::IMAGE_SELECTORSCREEN_ACHIEVEMENTS_PEDESTAL->mWidth, Sexy::IMAGE_SELECTORSCREEN_ACHIEVEMENTS_PEDESTAL->mHeight);
-	mAchievementsButton->mClip = false;
-	mAchievementsButton->mBtnNoDraw = mHasTrophy;
-	mAchievementsButton->mMouseVisible = false;
-
 	mZenGardenButton = MakeNewButton(
 		GameSelector::GameSelector_ZenGarden,
 		this,
@@ -345,11 +331,8 @@ GameSelector::GameSelector(LawnApp* theApp)
 	mDestX = 0;
 	mDestY = 0;
 	mZombatarWidget = std::make_unique<ZombatarWidget>(this);
-	mAchievementsWidget = std::make_unique<AchievementsWidget>(this->mApp);
-	mAchievementsWidget->Move(0, mApp->mHeight);
 
 	// Add as children in z-order (bottom to top).
-	AddWidget(mAchievementsButton);
 	AddWidget(mZombatarButton);
 	AddWidget(mChangeUserButton);
 	AddWidget(mSurvivalButton);
@@ -538,7 +521,6 @@ void GameSelector::SyncProfile(bool theShowLoading)
 	SyncButtons();
 	AlmanacInitForPlayer();
 	BoardInitForPlayer();
-	ReportAchievement::AchievementInitForPlayer(mApp);
 }
 
 void GameSelector::Draw(Graphics* g)
@@ -745,7 +727,6 @@ void GameSelector::Update()
 		Move(aNewX, aNewY);
 
 		mZombatarWidget->Move(aNewX + BOARD_WIDTH, aNewY);
-		mAchievementsWidget->mY = aNewY + mApp->mHeight;
 
 		mSlideCounter--;
 	}
@@ -818,7 +799,6 @@ void GameSelector::Update()
 			mOptionsButton->mBtnNoDraw = false;
 			mQuitButton->mBtnNoDraw = false;
 			mZombatarButton->mBtnNoDraw = false;
-			mAchievementsButton->mBtnNoDraw = false;
 			mAdventureButton->mMouseVisible = true;
 			mMinigameButton->mMouseVisible = true;
 			mPuzzleButton->mMouseVisible = true;
@@ -831,7 +811,6 @@ void GameSelector::Update()
 			mAlmanacButton->mMouseVisible = true;
 			mChangeUserButton->mMouseVisible = true;
 			mZombatarButton->mMouseVisible = true;
-			mAchievementsButton->mMouseVisible = true;
 
 			if (mApp->mPlayerInfo == nullptr)
 			{
@@ -928,7 +907,6 @@ void GameSelector::Update()
 	TrackButton(mStoreButton, "SelectorScreen_BG_Right", 334.0f, 441.0f);
 	TrackButton(mChangeUserButton, "woodsign2", 24.0f, 10.0f);
 	TrackButton(mZombatarButton, "woodsign3", 0.f, 0.f);
-	TrackButton(mAchievementsButton, "SelectorScreen_BG_Left", 20.f, 480.f);
 	aSelectorReanim->SetImageOverride("woodsign2", (mChangeUserButton->mIsOver || mChangeUserButton->mIsDown) ? Sexy::IMAGE_REANIM_SELECTORSCREEN_WOODSIGN2_PRESS : nullptr);
 	aSelectorReanim->SetImageOverride("woodsign3", (mZombatarButton->mIsOver || mZombatarButton->mIsDown) ? Sexy::IMAGE_REANIM_SELECTORSCREEN_WOODSIGN3_PRESS : nullptr);
 }
@@ -949,7 +927,6 @@ void GameSelector::AddedToManager(WidgetManager* theWidgetManager)
 	Widget::AddedToManager(theWidgetManager);
 
 	theWidgetManager->AddWidget(mZombatarWidget.get());
-	theWidgetManager->AddWidget(mAchievementsWidget.get());
 }
 
 void GameSelector::RemovedFromManager(WidgetManager* theWidgetManager)
@@ -957,12 +934,10 @@ void GameSelector::RemovedFromManager(WidgetManager* theWidgetManager)
 	Widget::RemovedFromManager(theWidgetManager);
 
 	theWidgetManager->RemoveWidget(mZombatarWidget.get());
-	theWidgetManager->RemoveWidget(mAchievementsWidget.get());
 }
 
 void GameSelector::OrderInManagerChanged()
 {
-	mWidgetManager->PutInfront(mAchievementsWidget.get(), this);
 	mWidgetManager->BringToFront(mZombatarWidget.get());
 }
 
@@ -983,7 +958,6 @@ void GameSelector::KeyDown(KeyCode theKey)
 	{
 		mApp->PlayFoley(FoleyType::FOLEY_POLEVAULT);
 		mApp->mMustacheMode = !mApp->mMustacheMode;
-		ReportAchievement::GiveAchievement(mApp, MustacheMode, false);
 		return;
 	}
 	if (mApp->mSuperMowerCheck->Check(theKey) || mApp->mSuperMowerCheck2->Check(theKey))
@@ -1157,7 +1131,6 @@ void GameSelector::ClickedAdventure()
 	mSurvivalButton->SetDisabled(true);
 	mZenGardenButton->SetDisabled(true);
 	mZombatarButton->SetDisabled(true);
-	mAchievementsButton->SetDisabled(true);
 
 	Reanimation* aHandReanim = mApp->AddReanimation(-70.0f, 10.0f, 0, ReanimationType::REANIM_ZOMBIE_HAND);
 	aHandReanim->mLoopType = ReanimLoopType::REANIM_PLAY_ONCE_AND_HOLD;
@@ -1216,7 +1189,7 @@ void GameSelector::ButtonDepress(int theId)
 		break;
 	case GameSelector::GameSelector_Help:
 		mApp->KillGameSelector();
-		mApp->ShowAwardScreen(AwardType::AWARD_HELP_ZOMBIENOTE, false);
+		mApp->ShowAwardScreen(AwardType::AWARD_HELP_ZOMBIENOTE);
 		break;
 	case GameSelector::GameSelector_Options:
 		mApp->DoNewOptions(true);
@@ -1250,9 +1223,6 @@ void GameSelector::ButtonDepress(int theId)
 		break;
 	case GameSelector::GameSelector_Zombatar:
 		ShowZombatarScreen();
-		break;
-	case GameSelector::GameSelector_Achievements:
-		ShowAchievementsScreen();
 		break;
 	}
 }
@@ -1379,10 +1349,4 @@ void GameSelector::ShowZombatarScreen()
 		mApp->ShowZombatarTOS();
 	else
 		mZombatarWidget->Open();
-}
-
-void GameSelector::ShowAchievementsScreen()
-{
-	SlideTo(0, -mApp->mHeight);
-	mWidgetManager->SetFocus(mAchievementsWidget.get());
 }

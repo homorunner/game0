@@ -81,24 +81,6 @@ bool gFastMo = false;
 LawnApp* gLawnApp = nullptr;
 int gSlowMoCounter = 0;
 
-static bool HasUnshownAchievements(PlayerInfo* thePlayerInfo)
-{
-	if (thePlayerInfo == nullptr)
-	{
-		return false;
-	}
-
-	for (int i = 0; i < MAX_ACHIEVEMENTS; i++)
-	{
-		if (thePlayerInfo->mEarnedAchievements[i] && !thePlayerInfo->mShownAchievements[i])
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
 bool LawnGetCloseRequest()
 {
 	if (gLawnApp == nullptr)
@@ -468,10 +450,10 @@ void LawnApp::KillGameSelector()
 	}
 }
 
-void LawnApp::ShowAwardScreen(AwardType theAwardType, bool theShowAchievements)
+void LawnApp::ShowAwardScreen(AwardType theAwardType)
 {
 	mGameScene = GameScenes::SCENE_AWARD;
-	mAwardScreen = std::make_unique<AwardScreen>(this, theAwardType, theShowAchievements);
+	mAwardScreen = std::make_unique<AwardScreen>(this, theAwardType);
 	mAwardScreen->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(mAwardScreen.get());
 	mWidgetManager->BringToBack(mAwardScreen.get());
@@ -1308,7 +1290,6 @@ bool LawnApp::UpdatePlayerProfileForFinishingLevel()
 			{
 				mPlayerInfo->mNeedsMessageOnGameSelector = 1;
 			}
-			ReportAchievement::GiveAchievement(this, HomeSecurity, false);
 		}
 		else
 		{
@@ -1373,22 +1354,6 @@ bool LawnApp::UpdatePlayerProfileForFinishingLevel()
 			}
 		}
 
-		int aNumTrophies = GetNumTrophies(ChallengePage::CHALLENGE_PAGE_CHALLENGE);
-		if (aNumTrophies == 20)
-			ReportAchievement::GiveAchievement(this, BeyondTheGrave, false);
-	}
-
-	if ((IsAdventureMode() || IsSurvivalMode()) && !IsScaryPotterLevel() && !IsWhackAZombieLevel()) {
-		if (mBoard->StageIsDayWithPool() && !mBoard->mPeaShooterUsed) {
-			ReportAchievement::GiveAchievement(this, DontPea, false);
-		} else if (mBoard->StageHasRoof() && !mBoard->HasConveyorBeltSeedBank() && !mBoard->mCatapultPlantsUsed) {
-			ReportAchievement::GiveAchievement(this, Grounded, false);
-		} else if (mBoard->StageIsDayWithoutPool() && mBoard->mMushroomAndCoffeeBeansOnly) {
-			ReportAchievement::GiveAchievement(this, GoodMorning, false);
-		}
-		if (mBoard->StageIsNight() && !mBoard->mMushroomsUsed) {
-			ReportAchievement::GiveAchievement(this, NoFungusAmongUs, false);
-		}
 	}
 
 	WriteCurrentUserConfig();
@@ -1410,26 +1375,22 @@ void LawnApp::CheckForGameEnd()
 
 		if (IsFirstTimeAdventureMode() && aLevel < 50)
 		{
-			ShowAwardScreen(AwardType::AWARD_FORLEVEL, true);
+			ShowAwardScreen(AwardType::AWARD_FORLEVEL);
 		}
 		else if (aLevel == FINAL_LEVEL)
 		{
 			if (mPlayerInfo->mFinishedAdventure == 1)
 			{
-				ShowAwardScreen(AwardType::AWARD_FORLEVEL, true);
+				ShowAwardScreen(AwardType::AWARD_FORLEVEL);
 			}
 			else
 			{
-				ShowAwardScreen(AwardType::AWARD_CREDITS_ZOMBIENOTE, true);
+				ShowAwardScreen(AwardType::AWARD_CREDITS_ZOMBIENOTE);
 			}
 		}
 		else if (aLevel == 9 || aLevel == 19 || aLevel == 29 || aLevel == 39 || aLevel == 49)
 		{
-			ShowAwardScreen(AwardType::AWARD_FORLEVEL, true);
-		}
-		else if (HasUnshownAchievements(mPlayerInfo))
-		{
-			ShowAwardScreen(AwardType::AWARD_ACHIEVEMENTONLY, true);
+			ShowAwardScreen(AwardType::AWARD_FORLEVEL);
 		}
 		else
 		{
@@ -1444,11 +1405,7 @@ void LawnApp::CheckForGameEnd()
 
 			if (aUnlockedNewChallenge && HasFinishedAdventure())
 			{
-				ShowAwardScreen(AwardType::AWARD_FORLEVEL, true);
-			}
-			else if (HasUnshownAchievements(mPlayerInfo))
-			{
-				ShowAwardScreen(AwardType::AWARD_ACHIEVEMENTONLY, true);
+				ShowAwardScreen(AwardType::AWARD_FORLEVEL);
 			}
 			else
 			{
@@ -1468,11 +1425,7 @@ void LawnApp::CheckForGameEnd()
 
 		if (aUnlockedNewChallenge)
 		{
-			ShowAwardScreen(AwardType::AWARD_FORLEVEL, true);
-		}
-		else if (HasUnshownAchievements(mPlayerInfo))
-		{
-			ShowAwardScreen(AwardType::AWARD_ACHIEVEMENTONLY, true);
+			ShowAwardScreen(AwardType::AWARD_FORLEVEL);
 		}
 		else
 		{
@@ -1485,11 +1438,7 @@ void LawnApp::CheckForGameEnd()
 
 		if (aUnlockedNewChallenge && HasFinishedAdventure())
 		{
-			ShowAwardScreen(AwardType::AWARD_FORLEVEL, true);
-		}
-		else if (HasUnshownAchievements(mPlayerInfo))
-		{
-			ShowAwardScreen(AwardType::AWARD_ACHIEVEMENTONLY, true);
+			ShowAwardScreen(AwardType::AWARD_FORLEVEL);
 		}
 		else
 		{
@@ -1808,7 +1757,6 @@ void LawnApp::PreDisplayHook()
 {
 	SexyApp::PreDisplayHook();
 }
-
 
 void LawnApp::ButtonPress(int) {}
 void LawnApp::ButtonDownTick(int) {}

@@ -56,7 +56,6 @@
 
 //#define SEXY_PERF_ENABLED
 #include "misc/PerfTimer.h"
-#include "Widget/AchievementsScreen.h"
 
 constexpr const int ZOMBIE_COUNTDOWN_FIRST_WAVE = 1800;
 constexpr const int ZOMBIE_COUNTDOWN = 2500;
@@ -143,29 +142,14 @@ Board::Board(LawnApp* theApp)
 	mRiseFromGraveCounter = 0;
 	mFinalWaveSoundCounter = 0;
 	mKilledYeti = false;
-	mTriggeredLawnMowers = 0;
 	mPlayTimeActiveLevel = 0;
 	mPlayTimeInactiveLevel = 0;
-	mMaxSunPlants = 0;
 	mStartDrawTime = 0;
 	mIntervalDrawTime = 0;
 	mIntervalDrawCountStart = 0;
 	mPreloadTime = 0;
 	mGameID = mApp->GetNowTime();
 	mMinFPS = 1000.0f;
-	mGravesCleared = 0;
-	mPlantsEaten = 0;
-	mPlantsShoveled = 0;
-	mPeaShooterUsed = false;
-	mCatapultPlantsUsed = false;
-	mMushroomAndCoffeeBeansOnly = true;
-	mMushroomsUsed = false;
-	mLevelCoinsCollected = 0;
-	mGargantuarsKillsByCornCob = 0;
-	mCoinsCollected = 0;
-	mDiamondsCollected = 0;
-	mPottedPlantsCollected = 0;
-	mChocolateCollected = 0;
 	for (int y = 0; y < MAX_GRID_SIZE_Y; y++)
 	{
 		for (int x = 0; x < 12; x++)
@@ -280,20 +264,6 @@ int Board::CountZombiesOnScreen()
 		if (aZombie->mDead)
 			continue;
 		if (aZombie->mHasHead && !aZombie->IsDeadOrDying() && !aZombie->mMindControlled && aZombie->IsOnBoard())
-		{
-			aCount++;
-		}
-	}
-	return aCount;
-}
-
-int Board::GetLiveGargantuarCount() {
-	int aCount = 0;
-	for (Zombie* aZombie : mZombies)
-	{
-		if (aZombie->mDead)
-			continue;
-		if (aZombie->mHasHead && !aZombie->IsDeadOrDying() && aZombie->IsOnBoard() && (aZombie->mZombieType == ZombieType::ZOMBIE_GARGANTUAR || aZombie->mZombieType == ZombieType::ZOMBIE_REDEYE_GARGANTUAR))
 		{
 			aCount++;
 		}
@@ -1636,14 +1606,6 @@ void Board::StartLevel()
 	mApp->mLastLevelStats->Reset();
 	mChallenge->StartLevel();
 
-	// the unsigned underflow below is intentional
-	unsigned int aSurvivalStage = mApp->mGameMode - GAMEMODE_SURVIVAL_ENDLESS_STAGE_1;
-	if (aSurvivalStage <= 4) {
-		if (GetSurvivalFlagsCompleted() >= 20) {
-			ReportAchievement::GiveAchievement(mApp, Immortal, true);
-		}
-	}
-
 	if (mApp->IsSurvivalMode() && mChallenge->mSurvivalStage > 0)
 	{
 		FreezeEffectsForCutscene(false);
@@ -1791,7 +1753,6 @@ void Board::CompleteEndLevelSequenceForSaving()
 			{
 				int aCoinValue = Coin::GetCoinValue(CoinType::COIN_GOLD);
 				mApp->mPlayerInfo->AddCoins(aCoinValue);
-				mCoinsCollected += aCoinValue;
 			}
 		}
 	}
@@ -2086,37 +2047,6 @@ Plant* Board::AddPlant(int theGridX, int theGridY, SeedType theSeedType, SeedTyp
 	Plant* aPlant = NewPlant(theGridX, theGridY, theSeedType, theImitaterType);
 	DoPlantingEffects(theGridX, theGridY, aPlant);
 	mChallenge->PlantAdded(aPlant);
-
-	int aSunPlantsCount = CountPlantByType(SeedType::SEED_SUNSHROOM) + CountPlantByType(SeedType::SEED_SUNFLOWER);
-	if (aSunPlantsCount > mMaxSunPlants)
-	{
-		mMaxSunPlants = aSunPlantsCount;  //mMaxSunPlants = max(aSunPlantsCount, mMaxSunPlants);
-	}
-
-	if (theSeedType == SeedType::SEED_PEASHOOTER ||
-		theSeedType == SeedType::SEED_SNOWPEA ||
-		theSeedType == SeedType::SEED_REPEATER ||
-		theSeedType == SeedType::SEED_THREEPEATER ||
-		theSeedType == SeedType::SEED_SPLITPEA ||
-		theSeedType == SeedType::SEED_GATLINGPEA)
-	{
-		mPeaShooterUsed = true;
-	}
-	if (theSeedType == SeedType::SEED_CABBAGEPULT ||
-		theSeedType == SeedType::SEED_KERNELPULT ||
-		theSeedType == SeedType::SEED_MELONPULT ||
-		theSeedType == SeedType::SEED_WINTERMELON)
-	{
-		mCatapultPlantsUsed = true;
-	}
-
-	bool aIsFungi = Plant::IsFungus(theSeedType);
-	if (!Plant::IsFlying(theSeedType) && !aIsFungi) {
-		mMushroomAndCoffeeBeansOnly = false;
-	}
-	if (aIsFungi) {
-		mMushroomsUsed = true;
-	}
 
 	if (IsUpgradeEnabled(RogueUpgrade::LeftpeaterBurst) &&
 		aPlant->mSeedType == SeedType::SEED_LEFTPEATER && aPlant->IsInPlay())
@@ -2636,11 +2566,6 @@ Zombie* Board::AddZombieInRow(ZombieType theZombieType, int theRow, int theFromW
 	{
 		PvzpLogLn("Too many zombies!!");
 		return nullptr;
-	}
-
-	if (theZombieType == ZombieType::ZOMBIE_YETI) {
-		if (mApp->IsAdventureMode() && mLevel == 40 && theFromWave >= 0)
-			ReportAchievement::GiveAchievement(mApp, Zombologist, true);
 	}
 
 	bool aVariant = !Rand(5);
@@ -4031,7 +3956,6 @@ void Board::MouseDownWithTool(int x, int y, int theClickCount, CursorType theCur
 	else if (theCursorType == CursorType::CURSOR_TYPE_SHOVEL)
 	{
 		mApp->PlayFoley(FoleyType::FOLEY_USE_SHOVEL);
-		mPlantsShoveled++;
 		aPlant->Die();
 
 		if (aPlant->mSeedType == SeedType::SEED_CATTAIL && GetTopPlantAt(aPlant->mPlantCol, aPlant->mRow, PlantPriority::TOPPLANT_ONLY_PUMPKIN))
@@ -7634,7 +7558,6 @@ void Board::DoTypingCheck(KeyCode theKey)
 	if (mApp->mMustacheCheck->Check(theKey) || mApp->mMoustacheCheck->Check(theKey))
 	{
 		SetMustacheMode(!mMustacheMode);
-		ReportAchievement::GiveAchievement(mApp, MustacheMode, true);
 		return;
 	}
 	if (mApp->mSuperMowerCheck->Check(theKey) || mApp->mSuperMowerCheck2->Check(theKey))
@@ -8516,8 +8439,6 @@ void Board::AddSunMoney(int theAmount)
 {
 	mSunMoney += theAmount;
 	mSunMoney = std::min(mSunMoney, 9990);
-	if (mSunMoney >= 8000)
-		ReportAchievement::GiveAchievement(mApp, SunnyDays, true);
 }
 
 int Board::CountSunBeingCollected()
@@ -9041,7 +8962,6 @@ void Board::KillAllPlantsInRadius(int theX, int theY, int theRadius)
 			continue;
 		if (GetCircleRectOverlap(theX, theY, theRadius, aPlant->GetPlantRect()))
 		{
-			mPlantsEaten++;
 			aPlant->Die();
 		}
 	}
@@ -9371,9 +9291,8 @@ bool Board::PlantingRequirementsMet(SeedType theSeedType)
 	}
 }
 
-int Board::KillAllZombiesInRadius(int theRow, int theX, int theY, int theRadius, int theRowRange, bool theBurn, int theDamageRangeFlags)
+void Board::KillAllZombiesInRadius(int theRow, int theX, int theY, int theRadius, int theRowRange, bool theBurn, int theDamageRangeFlags)
 {
-	int aKilledZombies = 0;
 	for (Zombie* aZombie : mZombies)
 	{
 		if (aZombie->mDead)
@@ -9397,8 +9316,6 @@ int Board::KillAllZombiesInRadius(int theRow, int theX, int theY, int theRadius,
 				{
 					aZombie->TakeDamage(1800, 18U);
 				}
-
-				aKilledZombies++;
 			}
 		}
 	}
@@ -9417,8 +9334,6 @@ int Board::KillAllZombiesInRadius(int theRow, int theX, int theY, int theRadius,
 			}
 		}
 	}
-
-	return aKilledZombies;
 }
 
 int Board::GetNumWavesPerSurvivalStage()

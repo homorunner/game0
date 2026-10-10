@@ -399,7 +399,6 @@ void LawnMower::StartMower()
 	}
 
 	mBoard->mWaveRowGotLawnMowered[mRow] = mBoard->mCurrentWave;
-	mBoard->mTriggeredLawnMowers++;
 	mMowerState = LawnMowerState::MOWER_TRIGGERED;
 }
 

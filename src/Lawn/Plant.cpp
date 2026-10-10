@@ -41,7 +41,6 @@
 #include "../PvzpLib/PvzpParticle.h"
 #include "../PvzpLib/EffectSystem.h"
 #include "../PvzpLib/PvzpStringFile.h"
-#include "Widget/AchievementsScreen.h"
 #include <algorithm>
 #include <format>
 
@@ -1147,7 +1146,6 @@ void Plant::UpdateGraveBuster()
 		if (aGraveStone)
 		{
 			aGraveStone->GridItemDie();
-			mBoard->mGravesCleared++;
 		}
 
 		mApp->AddPvzpParticle(mX + 40, mY + 40, mRenderOrder + 4, ParticleEffect::PARTICLE_GRAVE_BUSTER_DIE);
@@ -2324,7 +2322,6 @@ void Plant::UpdateGoldMagnetShroom()
 
 				int aValue = Coin::GetCoinValue(aCoinType);
 				mApp->mPlayerInfo->AddCoins(aValue);
-				mBoard->mCoinsCollected += aValue;
 				mApp->PlayFoley(FoleyType::FOLEY_COIN);
 
 				aMagnetItem->mItemType = MagnetItemType::MAGNET_ITEM_NONE;
@@ -2556,7 +2553,6 @@ void Plant::UpdateBowling()
 			{
 				mApp->PlayFoley(FoleyType::FOLEY_SPAWN_SUN);
 				mBoard->AddCoin(aPosX, aPosY, CoinType::COIN_GOLD, CoinMotion::COIN_MOTION_COIN);
-				ReportAchievement::GiveAchievement(mApp, RollSomeHeads, true);
 			}
 		}
 
@@ -4424,8 +4420,7 @@ void Plant::DoSpecial()
 		mApp->PlayFoley(FoleyType::FOLEY_CHERRYBOMB);
 		mApp->PlayFoley(FoleyType::FOLEY_JUICY);
 
-		if (mBoard->KillAllZombiesInRadius(mRow, aPosX, aPosY, 115, 1, true, aDamageRangeFlags) >= 10)
-			ReportAchievement::GiveAchievement(mApp, Explodonator, true);
+		mBoard->KillAllZombiesInRadius(mRow, aPosX, aPosY, 115, 1, true, aDamageRangeFlags);
 
 		mApp->AddPvzpParticle(aPosX, aPosY, static_cast<int>(RenderLayer::RENDER_LAYER_TOP), ParticleEffect::PARTICLE_POWIE);
 		mBoard->ShakeBoard(3, -4);
@@ -4488,8 +4483,7 @@ void Plant::DoSpecial()
 		aPosY = mY + mHeight / 2;
 
 		mApp->PlaySample(SOUND_POTATO_MINE);
-		if (mBoard->KillAllZombiesInRadius(mRow, aPosX, aPosY, 60, 0, false, aDamageRangeFlags) >= 1)
-			ReportAchievement::GiveAchievement(mApp, Spudow, true);
+		mBoard->KillAllZombiesInRadius(mRow, aPosX, aPosY, 60, 0, false, aDamageRangeFlags);
 
 		int aRenderPosition = Board::MakeRenderOrder(RenderLayer::RENDER_LAYER_PARTICLE, mRow, 0);
 		mApp->AddPvzpParticle(aPosX + 20.0f, aPosY, aRenderPosition, ParticleEffect::PARTICLE_POTATO_MINE);

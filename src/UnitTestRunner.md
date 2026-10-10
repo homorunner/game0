@@ -320,8 +320,8 @@ detachment, and straight/bounced save-load continuation.
 
 Rolling identity uses an appended `STATE_BOWLING_STRAIGHT` plus the existing
 up/down states, all serialized by the existing plant tail. Existing state
-numbers and plant layouts are unchanged. The legacy Board byte span is frozen
-at its original aligned end; click history is never restored. Tests exercise
+numbers and plant layouts are unchanged. The raw Board byte span now ends
+after `mGameID`, excluding removed telemetry; click history is never restored. Tests exercise
 portable saves, not an archived legacy binary fixture or visual appearance.
 
 ## Roguelike Runs
@@ -366,7 +366,7 @@ masks, phases, duplicate/maxed offers, invalid levels, malformed or duplicate ru
 phase/countdown mismatches. Pre-roguelike endless saves are deliberately rejected;
 no migration is provided. Non-endless saves keep their existing behavior.
 
-Ten cases in `RogueTestCases.cpp` cover all 256 unlock masks, real scoped
+Eleven cases in `RogueTestCases.cpp` cover all 256 unlock masks, real scoped
 effects, sixteen consecutive stage rewards (including pool exhaustion), all four
 resumable phases, malformed saves, production input/update gates, actual modal
 focus and selection, death/restart, all six volley counts and firing intervals,
@@ -375,3 +375,20 @@ shot counters, all 28 mixed stack-level combinations, and schema-1/2 compatibili
 They are appended so tests 09 and 10
 retain their numbering and 2x playback. The last case leaves a read-only version
 of the real three-card dialog visible during the five-second final hold.
+
+## Removal of the achievement system
+
+Achievement screens, the selector entry, award overlays, notifications,
+resource bindings, player flags and all achievement triggers have been removed.
+Fifteen write-only Board telemetry fields and their save entries are also gone.
+Explosion damage, bowling rewards, collectible effects, player coin balances,
+challenge records and endless stage progression remain active.
+
+Player details now use version 13 without the 40-byte achievement block.
+Portable saves use header revision 2 after the Board fields and resource IDs
+were compacted. Saves from earlier builds are not supported by this change.
+The separate run-chunk schema parser does not migrate those earlier files.
+
+The added regression case exercises actual Cherry Bomb, Potato Mine and Corn
+Cannon attacks, coin scoring and a compact player-details save/load roundtrip.
+The full suite also covers 16 endless stages, all buff levels and live-run saves.

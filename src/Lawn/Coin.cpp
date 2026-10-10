@@ -36,7 +36,6 @@
 #include "../PvzpLib/PvzpDebug.h"
 #include "../PvzpLib/Reanimator.h"
 #include "../PvzpLib/Attachment.h"
-#include "Widget/AchievementsScreen.h"
 
 Coin::Coin()
 {
@@ -443,22 +442,8 @@ void Coin::ScoreCoin()
 	{
 		int aCoinValue = Coin::GetCoinValue(mType);
 		mApp->mPlayerInfo->AddCoins(aCoinValue);
-		if (mBoard)
-		{
-			mBoard->mCoinsCollected += aCoinValue;
-
-			if (mType == CoinType::COIN_SILVER || mType == CoinType::COIN_GOLD) {
-				mBoard->mLevelCoinsCollected++;
-				if (mBoard->mLevelCoinsCollected == 30 && mApp->mPlayerInfo->mCoins != 0)
-					ReportAchievement::GiveAchievement(mApp, PennyPincher, true);
-			}
-		}
 	}
 
-	if (mType == CoinType::COIN_DIAMOND && mBoard)
-	{
-		mBoard->mDiamondsCollected++;
-	}
 }
 
 void Coin::StartFade()
@@ -572,7 +557,6 @@ void Coin::UpdateFall()
 
 		mPosY = mGroundY;
 		mPosX = FloatRoundToInt(mPosX);
-
 
 		if (mApp->mGameMode != GameMode::GAMEMODE_CHALLENGE_LAST_STAND || mBoard == nullptr ||
 			mBoard->mChallenge->mChallengeState == ChallengeState::STATECHALLENGE_LAST_STAND_ONSLAUGHT)
@@ -1069,7 +1053,6 @@ void Coin::Collect()
 		}
 		else
 		{
-			mBoard->mPottedPlantsCollected++;
 			mBoard->DisplayAdvice("[ADVICE_FOUND_PLANT]", MessageStyle::MESSAGE_STYLE_HINT_FAST, AdviceType::ADVICE_NONE);
 			mApp->AddPvzpParticle(mPosX + 30.0f, mPosY + 30.0f, mRenderOrder + 1, ParticleEffect::PARTICLE_PRESENT_PICKUP);
 			mApp->mZenGarden->AddPottedPlant(&mPottedPlantSpec);
@@ -1133,7 +1116,6 @@ void Coin::Collect()
 	{
 		PVZP_ASSERT(mBoard);
 
-		mBoard->mChocolateCollected++;
 		mApp->AddPvzpParticle(mPosX + 30.0f, mPosY + 30.0f, mRenderOrder + 1, ParticleEffect::PARTICLE_PRESENT_PICKUP);
 
 		if (mApp->mPlayerInfo->mPurchases[StoreItem::STORE_ITEM_CHOCOLATE] < PURCHASE_COUNT_OFFSET)

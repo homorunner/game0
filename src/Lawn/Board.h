@@ -226,29 +226,14 @@ public:
 	bool							mDaisyMode;
 	bool							mSukhbirMode;
 	BoardResult						mPrevBoardResult;
-	int32_t							mTriggeredLawnMowers;
 	uint32_t						mPlayTimeActiveLevel;
 	uint32_t						mPlayTimeInactiveLevel;
-	int32_t							mMaxSunPlants;
 	int64_t							mStartDrawTime;
 	int64_t							mIntervalDrawTime;
 	uint32_t						mIntervalDrawCountStart;
 	float							mMinFPS;
 	int32_t							mPreloadTime;
 	intptr_t						mGameID;
-	uint32_t						mGravesCleared;
-	uint32_t						mPlantsEaten;
-	uint32_t						mPlantsShoveled;
-	bool							mPeaShooterUsed;										//+0x5784
-	bool							mCatapultPlantsUsed;									//+0x5785
-	bool							mMushroomAndCoffeeBeansOnly;							//+0x5790
-	bool							mMushroomsUsed;											//+0x5791
-	uint32_t						mLevelCoinsCollected;									//+0x5788
-	uint32_t						mGargantuarsKillsByCornCob;								//+0x578C
-	uint32_t						mCoinsCollected;										//+0x57C8
-	uint32_t						mDiamondsCollected;										//+0x57CC
-	uint32_t						mPottedPlantsCollected;
-	uint32_t						mChocolateCollected;
 	PlantID                         mLastClickedPlantID = PlantID::PLANTID_NULL;
 	RogueRun                        mRogueRun;
 
@@ -423,7 +408,7 @@ public:
 	bool							IsValidCobCannonSpot(int theGridX, int theGridY);
 	bool							IsValidCobCannonSpotHelper(int theGridX, int theGridY);
 	void							MouseDownCobcannonFire(int x, int y, int theClickCount);
-	int								KillAllZombiesInRadius(int theRow, int theX, int theY, int theRadius, int theRowRange, bool theBurn, int theDamageRangeFlags);
+	void								KillAllZombiesInRadius(int theRow, int theX, int theY, int theRadius, int theRowRange, bool theBurn, int theDamageRangeFlags);
 	int					GetSeedBankExtraWidth();
 	bool							IsFlagWave(int theWaveNumber);
 	void							DrawHouseDoorTop(Graphics* g);
@@ -448,7 +433,6 @@ public:
 	bool							IsFinalSurvivalStage();
 	void							SurvivalSaveScore();
 	int								CountZombiesOnScreen();
-	int								GetLiveGargantuarCount();
 	int					GetNumWavesPerSurvivalStage();
 	int								GetLevelRandSeed();
 	void							AddBossRenderItem(RenderItem* theRenderList, int& theCurRenderItem, Zombie* theBossZombie);

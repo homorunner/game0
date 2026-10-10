@@ -51,7 +51,7 @@ static constexpr const uint32_t SAVE_FILE_VERSION = 2U;
 static const uint32_t SAVE_FILE_DATE = crc32(0, (Bytef*)FILE_COMPILE_TIME_STRING, strlen(FILE_COMPILE_TIME_STRING));
 
 static constexpr const char SAVE_FILE_MAGIC_V4[12] = "PVZP_SAVE4";
-static constexpr const uint32_t SAVE_FILE_V4_VERSION = 1U;
+static constexpr const uint32_t SAVE_FILE_V4_VERSION = 2U;
 
 struct SaveFileHeaderV4
 {
@@ -1594,29 +1594,14 @@ enum BoardBaseFieldId : uint32_t
 	BOARD_FIELD_DAISY_MODE,
 	BOARD_FIELD_SUKHBIR_MODE,
 	BOARD_FIELD_PREV_BOARD_RESULT,
-	BOARD_FIELD_TRIGGERED_LAWN_MOWERS,
 	BOARD_FIELD_PLAY_TIME_ACTIVE_LEVEL,
 	BOARD_FIELD_PLAY_TIME_INACTIVE_LEVEL,
-	BOARD_FIELD_MAX_SUN_PLANTS,
 	BOARD_FIELD_START_DRAW_TIME,
 	BOARD_FIELD_INTERVAL_DRAW_TIME,
 	BOARD_FIELD_INTERVAL_DRAW_COUNT_START,
 	BOARD_FIELD_MIN_FPS,
 	BOARD_FIELD_PRELOAD_TIME,
 	BOARD_FIELD_GAME_ID,
-	BOARD_FIELD_GRAVES_CLEARED,
-	BOARD_FIELD_PLANTS_EATEN,
-	BOARD_FIELD_PLANTS_SHOVELED,
-	BOARD_FIELD_PEA_SHOOTER_USED,
-	BOARD_FIELD_CATAPULT_PLANTS_USED,
-	BOARD_FIELD_MUSHROOM_AND_COFFEE_BEANS_ONLY,
-	BOARD_FIELD_MUSHROOMS_USED,
-	BOARD_FIELD_LEVEL_COINS_COLLECTED,
-	BOARD_FIELD_GARGANTUARS_KILLS_BY_CORN_COB,
-	BOARD_FIELD_COINS_COLLECTED,
-	BOARD_FIELD_DIAMONDS_COLLECTED,
-	BOARD_FIELD_POTTED_PLANTS_COLLECTED,
-	BOARD_FIELD_CHOCOLATE_COLLECTED,
 	BOARD_FIELD_COUNT
 };
 
@@ -1708,29 +1693,14 @@ static constexpr BoardBaseFieldEntry gBoardBaseFields[] = {
 	{ BOARD_FIELD_DAISY_MODE, [](PortableSaveContext& c, Board* theBoard){ c.SyncBool(theBoard->mDaisyMode); } },
 	{ BOARD_FIELD_SUKHBIR_MODE, [](PortableSaveContext& c, Board* theBoard){ c.SyncBool(theBoard->mSukhbirMode); } },
 	{ BOARD_FIELD_PREV_BOARD_RESULT, [](PortableSaveContext& c, Board* theBoard){ SyncEnum32(c, theBoard->mPrevBoardResult); } },
-	{ BOARD_FIELD_TRIGGERED_LAWN_MOWERS, [](PortableSaveContext& c, Board* theBoard){ c.SyncInt32(theBoard->mTriggeredLawnMowers); } },
 	{ BOARD_FIELD_PLAY_TIME_ACTIVE_LEVEL, [](PortableSaveContext& c, Board* theBoard){ c.SyncUInt32(theBoard->mPlayTimeActiveLevel); } },
 	{ BOARD_FIELD_PLAY_TIME_INACTIVE_LEVEL, [](PortableSaveContext& c, Board* theBoard){ c.SyncUInt32(theBoard->mPlayTimeInactiveLevel); } },
-	{ BOARD_FIELD_MAX_SUN_PLANTS, [](PortableSaveContext& c, Board* theBoard){ c.SyncInt32(theBoard->mMaxSunPlants); } },
 	{ BOARD_FIELD_START_DRAW_TIME, [](PortableSaveContext& c, Board* theBoard){ c.SyncInt64(theBoard->mStartDrawTime); } },
 	{ BOARD_FIELD_INTERVAL_DRAW_TIME, [](PortableSaveContext& c, Board* theBoard){ c.SyncInt64(theBoard->mIntervalDrawTime); } },
 	{ BOARD_FIELD_INTERVAL_DRAW_COUNT_START, [](PortableSaveContext& c, Board* theBoard){ c.SyncUInt32(theBoard->mIntervalDrawCountStart); } },
 	{ BOARD_FIELD_MIN_FPS, [](PortableSaveContext& c, Board* theBoard){ c.SyncFloat(theBoard->mMinFPS); } },
 	{ BOARD_FIELD_PRELOAD_TIME, [](PortableSaveContext& c, Board* theBoard){ c.SyncInt32(theBoard->mPreloadTime); } },
 	{ BOARD_FIELD_GAME_ID, [](PortableSaveContext& c, Board* theBoard){ int64_t aGameId = static_cast<int64_t>(theBoard->mGameID); c.SyncInt64(aGameId); if (c.mReading) theBoard->mGameID = static_cast<intptr_t>(aGameId); } },
-	{ BOARD_FIELD_GRAVES_CLEARED, [](PortableSaveContext& c, Board* theBoard){ c.SyncUInt32(theBoard->mGravesCleared); } },
-	{ BOARD_FIELD_PLANTS_EATEN, [](PortableSaveContext& c, Board* theBoard){ c.SyncUInt32(theBoard->mPlantsEaten); } },
-	{ BOARD_FIELD_PLANTS_SHOVELED, [](PortableSaveContext& c, Board* theBoard){ c.SyncUInt32(theBoard->mPlantsShoveled); } },
-	{ BOARD_FIELD_PEA_SHOOTER_USED, [](PortableSaveContext& c, Board* theBoard){ c.SyncBool(theBoard->mPeaShooterUsed); } },
-	{ BOARD_FIELD_CATAPULT_PLANTS_USED, [](PortableSaveContext& c, Board* theBoard){ c.SyncBool(theBoard->mCatapultPlantsUsed); } },
-	{ BOARD_FIELD_MUSHROOM_AND_COFFEE_BEANS_ONLY, [](PortableSaveContext& c, Board* theBoard){ c.SyncBool(theBoard->mMushroomAndCoffeeBeansOnly); } },
-	{ BOARD_FIELD_MUSHROOMS_USED, [](PortableSaveContext& c, Board* theBoard){ c.SyncBool(theBoard->mMushroomsUsed); } },
-	{ BOARD_FIELD_LEVEL_COINS_COLLECTED, [](PortableSaveContext& c, Board* theBoard){ c.SyncUInt32(theBoard->mLevelCoinsCollected); } },
-	{ BOARD_FIELD_GARGANTUARS_KILLS_BY_CORN_COB, [](PortableSaveContext& c, Board* theBoard){ c.SyncUInt32(theBoard->mGargantuarsKillsByCornCob); } },
-	{ BOARD_FIELD_COINS_COLLECTED, [](PortableSaveContext& c, Board* theBoard){ c.SyncUInt32(theBoard->mCoinsCollected); } },
-	{ BOARD_FIELD_DIAMONDS_COLLECTED, [](PortableSaveContext& c, Board* theBoard){ c.SyncUInt32(theBoard->mDiamondsCollected); } },
-	{ BOARD_FIELD_POTTED_PLANTS_COLLECTED, [](PortableSaveContext& c, Board* theBoard){ c.SyncUInt32(theBoard->mPottedPlantsCollected); } },
-	{ BOARD_FIELD_CHOCOLATE_COLLECTED, [](PortableSaveContext& c, Board* theBoard){ c.SyncUInt32(theBoard->mChocolateCollected); } },
 };
 
 // The enum is contiguous starting at 1: the table must cover every id, in id order, so readers can index it directly.
@@ -1985,7 +1955,6 @@ static void SyncBoardPortable(PortableSaveContext& theContext, Board* theBoard)
 	SyncChallengePortable(theContext, theBoard);
 	SyncMusicPortable(theContext, theBoard);
 }
-
 
 typedef void (*ChunkSyncFn)(PortableSaveContext&, Board*);
 
@@ -2836,7 +2805,7 @@ template <typename T> inline static void SyncDataArray(SaveGameContext& theConte
 static void SyncBoard(SaveGameContext& theContext, Board* theBoard)
 {
 	size_t offset = size_t(&theBoard->mPaused) - size_t(theBoard);
-	const size_t legacySize = (offsetof(Board, mChocolateCollected) + sizeof(uint32_t) + alignof(Board) - 1) / alignof(Board) * alignof(Board);
+	const size_t legacySize = (offsetof(Board, mGameID) + sizeof(intptr_t) + alignof(Board) - 1) / alignof(Board) * alignof(Board);
 	theContext.SyncBytes(&theBoard->mPaused, legacySize - offset);
 	if (theContext.mReading) theBoard->mLastClickedPlantID = PlantID::PLANTID_NULL;
 

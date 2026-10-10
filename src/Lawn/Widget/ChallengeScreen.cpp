@@ -541,16 +541,16 @@ void ChallengeScreen::DrawButton(Graphics* g, int theChallengeIndex)
 				}
 				else if (mApp->IsEndlessScaryPotter(aDef.mChallengeMode) || mApp->IsEndlessIZombie(aDef.mChallengeMode))
 				{
-					std::string aAchievement = mApp->Pluralize(aRecord, "[ONE_FLAG]", "[COUNT_FLAGS]");
-					PvzpDrawString(g, aAchievement, aPosX + 48, aPosY + 48, Sexy::FONT_CONTINUUMBOLD14OUTLINE, Color::White, DS_ALIGN_CENTER);
-					PvzpDrawString(g, aAchievement, aPosX + 48, aPosY + 48, Sexy::FONT_CONTINUUMBOLD14, Color(255, 0, 0), DS_ALIGN_CENTER);
+					std::string aRecordText = mApp->Pluralize(aRecord, "[ONE_FLAG]", "[COUNT_FLAGS]");
+					PvzpDrawString(g, aRecordText, aPosX + 48, aPosY + 48, Sexy::FONT_CONTINUUMBOLD14OUTLINE, Color::White, DS_ALIGN_CENTER);
+					PvzpDrawString(g, aRecordText, aPosX + 48, aPosY + 48, Sexy::FONT_CONTINUUMBOLD14, Color(255, 0, 0), DS_ALIGN_CENTER);
 				}
 				else if (mApp->IsSurvivalEndless(aDef.mChallengeMode))
 				{
-					std::string aAchievement = PvzpReplaceNumberString("[LONGEST_STREAK]", "{STREAK}", aRecord);
+					std::string aRecordText = PvzpReplaceNumberString("[LONGEST_STREAK]", "{STREAK}", aRecord);
 					Rect aRect(aPosX, aPosY + 15, 96, 200);
-					PvzpDrawStringWrapped(g, aAchievement, aRect, Sexy::FONT_CONTINUUMBOLD14OUTLINE, Color::White, DS_ALIGN_CENTER);
-					PvzpDrawStringWrapped(g, aAchievement, aRect, Sexy::FONT_CONTINUUMBOLD14, Color(255, 0, 0), DS_ALIGN_CENTER);
+					PvzpDrawStringWrapped(g, aRecordText, aRect, Sexy::FONT_CONTINUUMBOLD14OUTLINE, Color::White, DS_ALIGN_CENTER);
+					PvzpDrawStringWrapped(g, aRecordText, aRect, Sexy::FONT_CONTINUUMBOLD14, Color(255, 0, 0), DS_ALIGN_CENTER);
 				}
 			}
 			else if (aChallengeButton->mDisabled)
